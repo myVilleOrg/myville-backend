@@ -22,7 +22,7 @@ var User = {
 					return res.status(200).json(user);
 				});
 			});
-      	});
+ 		});
 
 	},
 	login: function(req, res, next){
