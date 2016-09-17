@@ -9,7 +9,9 @@ var config = {
 			name: 'backend'
 		},
 		port: process.env.PORT || 3000,
-		db: 'mongodb://localhost/backend-development'
+		db: 'mongodb://localhost/backend-development',
+		tokenSalt: 'zbeb',
+		nosecurePath: ['/user/create', '/user/login', '/']
 	},
 
 	test: {
@@ -18,7 +20,8 @@ var config = {
 			name: 'backend'
 		},
 		port: process.env.PORT || 3000,
-		db: 'mongodb://localhost/backend-test'
+		db: 'mongodb://localhost/backend-test',
+		tokenSalt: 'zbeb'
 	},
 
 	production: {
@@ -27,8 +30,9 @@ var config = {
 			name: 'backend'
 		},
 		port: process.env.PORT || 3000,
-		db: 'mongodb://localhost/backend-production'
-	}
+		db: 'mongodb://localhost/backend-production',
+		tokenSalt: 'zbeb'
+	},
 };
 
 module.exports = config[env];
