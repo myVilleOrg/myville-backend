@@ -30,7 +30,15 @@ module.exports = function(app, config) {
 	app.use(compress());
 	app.use(express.static(config.root + '/public'));
 	app.use(methodOverride());
-
+	app.use(function(req, res, next){
+		res.error = function(data){
+			return res.status(500).json(data);
+		};
+		res.ok = function(data){
+			return res.status(200).json(data);
+		};
+		next();
+	});
 	app.all('*', function(req, res, next){
 		for(var i = 0; i < config.nosecurePath.length; i++) {
 			if(req.path === config.nosecurePath[i]) return next();
@@ -56,7 +64,7 @@ module.exports = function(app, config) {
 		err.status = 404;
 		next(err);
 	});
-	
+
 	if(app.get('env') === 'development'){
 		app.use(function (err, req, res, next) {
 			res.status(500).json({
