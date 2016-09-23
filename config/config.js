@@ -11,7 +11,7 @@ var config = {
 		port: process.env.PORT || 3000,
 		db: 'mongodb://localhost/backend-development',
 		tokenSalt: 'zbeb',
-		nosecurePath: ['/user/create', '/user/login', '/user/update', '/']
+		nosecurePath: ['/user/create', '/user/login', '/']
 	},
 
 	test: {

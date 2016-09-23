@@ -63,7 +63,7 @@ var User = {
 						if(err) return res.error({message: err.message, error: err});
 
 					UserModel.findOneAndUpdate({nickname: req.body.oldusername}, {nickname: req.body.newusername, password: hash, email: req.body.email, phoneNumber: req.body.phonenumber}, {new: true}).then(function(user){
-								return res.status(200).json(user);
+								return res.ok(user);
 					}).catch(function(err){
 						return res.error({message: err.message, error: err});
 					});
@@ -77,6 +77,6 @@ module.exports = function (app) {
 	app.post('/user/create', 	User.create);
 	app.post('/user/login',		User.login);
 	app.get('/user/:id',	    User.get);
-	app.post('/user/update',	User.update);
+	app.update('/user/update',	User.update);
 
 };
