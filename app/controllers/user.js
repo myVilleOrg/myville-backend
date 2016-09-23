@@ -1,9 +1,9 @@
 var express			= require('express'),
-	mongoose			= require('mongoose'),
-	UserModel			= mongoose.model('User'),
-	jwt						= require('jsonwebtoken'),
+	mongoose		= require('mongoose'),
+	UserModel		= mongoose.model('User'),
+	jwt				= require('jsonwebtoken'),
 	secretConfig	= require('../../config/config'),
-	bcrypt				= require('bcrypt');
+	bcrypt			= require('bcrypt');
 
 var salt = bcrypt.genSaltSync(10);
 var User = {
@@ -76,6 +76,6 @@ module.exports = function (app) {
 	app.post('/user/create',	User.create);
 	app.post('/user/login',		User.login);
 	app.delete('/user/:id',		User.delete);
-	app.get('/user/:id',			User.get);
+	app.get('/user/:id',		User.get);
 
 };
