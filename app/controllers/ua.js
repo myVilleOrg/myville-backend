@@ -9,7 +9,7 @@ var Ua = {
 			console.log(req.body[fields[i]]);
 			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'})
 		}
-		UaModel.create({place: req.body.place, description: req.body.description, user: req.body.user}).then(function(ua){
+		UaModel.create({place: req.body.place, description: req.body.description, user: req.body.user, deleted: false}).then(function(ua){
 			return res.ok(ua);
 		});
 	},
@@ -23,11 +23,9 @@ var Ua = {
 	},
 
 	delete: function(req, res, next){
-		UaModel.findOne({_id: req.ua._id}).then(function(ua){
-			if(req.params.id != req.ua._id) return res.error({message: 'Forbidden action', err: 'Deny'});
+		UaModel.findOne({_id: req.params.id}).then(function(ua){
 			if(ua.deleted) return res.error({message: 'Already done'});
-
-			UaModel.update({_id: ua._id}, {deleted: true}).then(function(data){
+			UaModel.update({_id: ua.id}, {deleted: true}).then(function(data){
 				return res.ok({message: 'OK'});
 			}).catch(function(err){
 				return res.error({message: err.message, error: err});
