@@ -6,6 +6,7 @@ var UaSchema = new Schema({
 	description: String,
 	user: String,
 	deleted: Boolean,
+	private: Boolean,
 },
 {
     timestamps: true
