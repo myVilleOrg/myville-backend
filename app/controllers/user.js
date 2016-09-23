@@ -49,7 +49,6 @@ var User = {
 			return res.error({message : 'Login failed', error: 'Error'});
 		});
 	},
-
 	get: function(req, res, next){
 		UserModel.findOne({_id: req.params.id, deleted: false}).select('nickname _id createdAt avatar').then(function(user){
 			if(!user) return res.error({message: 'User not found', error: 'Not found'});
@@ -59,7 +58,28 @@ var User = {
 			return res.error({message: 'User not found', error: 'Not found'});
 		});
 	},
+	update: function(req, res, next){
+		var fields = ['oldusername', 'newusername', 'password', 'email', 'phonenumber'];
 
+		for(var i = 0; i < fields.length; i++) {
+			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'})
+		}
+
+			bcrypt.genSalt(10, function (err, salt) {
+				if(err) return res.error({message: err.message, error: err});
+
+				bcrypt.hash(req.body.password, salt, function (err, hash) {
+						if(err) return res.error({message: err.message, error: err});
+
+					UserModel.findOneAndUpdate({nickname: req.body.oldusername}, {nickname: req.body.newusername, password: hash, email: req.body.email, phoneNumber: req.body.phonenumber}, {new: true}).then(function(user){
+								return res.ok(user);
+					}).catch(function(err){
+						return res.error({message: err.message, error: err});
+					});
+				});
+			});
+
+	},
 	delete: function(req, res, next){
 		UserModel.findOne({_id: req.user._id}).then(function(user){
 			if(req.params.id != req.user._id) return res.error({message: 'Forbidden action', err: 'Deny'});
@@ -77,6 +97,7 @@ var User = {
 module.exports = function (app) {
 	app.post('/user/create',	User.create);
 	app.post('/user/login',		User.login);
+	app.update('/user/update',	User.update);
 	app.delete('/user/:id',		User.delete);
 	app.get('/user/:id',		User.get);
 
