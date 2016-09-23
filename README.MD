@@ -9,7 +9,7 @@ To start developping the myVille backend follow the steps.
 
 First copy the project :
 ```bash
-$ git clone https://kakulukian@bitbucket.org/kakulukian/myville-backend.git
+$ git clone https://bitbucket.org/kakulukian/myville-backend.git
 ```
 When it finishes
 ```bash

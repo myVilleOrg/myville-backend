@@ -7,10 +7,10 @@ var UserSchema = new Schema({
 	avatar: String,
 	email: String,
 	phoneNumber: Number,
-
+	deleted: Boolean,
 },
 {
-    timestamps: true
+	timestamps: true
 });
 
 mongoose.model('User', UserSchema);
