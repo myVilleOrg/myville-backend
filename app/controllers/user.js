@@ -97,7 +97,7 @@ var User = {
 module.exports = function (app) {
 	app.post('/user/create',	User.create);
 	app.post('/user/login',		User.login);
-	app.update('/user/update',	User.update);
+	app.put('/user/update',	User.update);
 	app.delete('/user/:id',		User.delete);
 	app.get('/user/:id',		User.get);
 
