@@ -49,6 +49,7 @@ var User = {
 			return res.error({message : 'Login failed', error: 'Error'});
 		});
 	},
+
 	get: function(req, res, next){
 		UserModel.findOne({_id: req.params.id, deleted: false}).select('nickname _id createdAt avatar').then(function(user){
 			if(!user) return res.error({message: 'User not found', error: 'Not found'});
@@ -58,6 +59,7 @@ var User = {
 			return res.error({message: 'User not found', error: 'Not found'});
 		});
 	},
+
 	delete: function(req, res, next){
 		UserModel.findOne({_id: req.user._id}).then(function(user){
 			if(req.params.id != req.user._id) return res.error({message: 'Forbidden action', err: 'Deny'});
