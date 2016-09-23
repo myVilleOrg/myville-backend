@@ -1,13 +1,12 @@
-var express = require('express');
-var glob = require('glob');
-
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
-var compress = require('compression');
-var methodOverride = require('method-override');
-var jwt = require('jsonwebtoken');
+var express				= require('express');
+var glob				= require('glob');
+var favicon				= require('serve-favicon');
+var logger				= require('morgan');
+var cookieParser		= require('cookie-parser');
+var bodyParser			= require('body-parser');
+var compress			= require('compression');
+var methodOverride		= require('method-override');
+var jwt					= require('jsonwebtoken');
 
 module.exports = function(app, config) {
 	var env = process.env.NODE_ENV || 'development';
@@ -39,6 +38,7 @@ module.exports = function(app, config) {
 		};
 		next();
 	});
+
 	app.all('*', function(req, res, next){
 		for(var i = 0; i < config.nosecurePath.length; i++) {
 			if(req.path === config.nosecurePath[i]) return next();
@@ -47,7 +47,7 @@ module.exports = function(app, config) {
 		if(token){
 			jwt.verify(token, config.tokenSalt, function(err, decoded) {
 				if(err) return res.status(500).json({message: err.message, error: err});
-				req.user = decoded;
+				req.user = decoded._doc;
 				next();
 			});
 		} else return res.status(500).json({message: 'Where is your token ?', error: 'Token Missing'});
