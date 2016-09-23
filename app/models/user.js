@@ -1,5 +1,6 @@
-var mongoose = require('mongoose'),
-	Schema = mongoose.Schema;
+var mongoose 	= require('mongoose'),
+	Schema 		= mongoose.Schema,
+	UASchema	= require('./ua');
 
 var UserSchema = new Schema({
 	nickname: String,
@@ -8,9 +9,12 @@ var UserSchema = new Schema({
 	email: String,
 	phoneNumber: Number,
 	deleted: Boolean,
+	uas: [UASchema]
 },
 {
 	timestamps: true
 });
 
 mongoose.model('User', UserSchema);
+
+module.exports = UserSchema;
