@@ -1,9 +1,9 @@
-var express 		= require('express'),
-	mongoose 		  = require('mongoose'),
-	UserModel 		= mongoose.model('User'),
-	jwt 			    = require('jsonwebtoken'),
+var express			= require('express'),
+	mongoose			= require('mongoose'),
+	UserModel			= mongoose.model('User'),
+	jwt						= require('jsonwebtoken'),
 	secretConfig	= require('../../config/config'),
-	bcrypt			  = require('bcrypt');
+	bcrypt				= require('bcrypt');
 
 var salt = bcrypt.genSaltSync(10);
 var User = {
@@ -49,7 +49,7 @@ var User = {
 			return res.error({message : 'Login failed', error: 'Error'});
 		});
 	},
-	get:  function(req, res, next){
+	get: function(req, res, next){
 		UserModel.findOne({_id: req.params.id, deleted: false}).select('nickname _id createdAt avatar').then(function(user){
 			if(!user) return res.error({message: 'User not found', error: 'Not found'});
 
@@ -73,9 +73,9 @@ var User = {
 };
 
 module.exports = function (app) {
-	app.post('/user/create', 	User.create);
+	app.post('/user/create',	User.create);
 	app.post('/user/login',		User.login);
 	app.delete('/user/:id',		User.delete);
-	app.get('/user/:id',	 		User.get);
+	app.get('/user/:id',			User.get);
 
 };

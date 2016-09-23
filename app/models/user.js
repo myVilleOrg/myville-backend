@@ -10,7 +10,7 @@ var UserSchema = new Schema({
 	deleted: Boolean,
 },
 {
-    timestamps: true
+	timestamps: true
 });
 
 mongoose.model('User', UserSchema);
