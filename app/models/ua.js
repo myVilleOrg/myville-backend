@@ -5,6 +5,7 @@ var UaSchema = new Schema({
 	place: String,
 	description: String,
 	deleted: Boolean,
+	private: Boolean,
 	owner: {type: Schema.Types.ObjectId, ref: 'User'}
 },
 {
