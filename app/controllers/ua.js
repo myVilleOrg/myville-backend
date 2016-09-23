@@ -1,5 +1,5 @@
 var express 		= require('express'),
-	mongoose 		  = require('mongoose'),
+	mongoose 		= require('mongoose'),
 	UaModel 		= mongoose.model('Ua');
 
 var Ua = {
