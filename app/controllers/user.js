@@ -58,7 +58,6 @@ var User = {
 			return res.error({message: 'User not found', error: 'Not found'});
 		});
 	},
-
 	update: function(req, res, next){
 		var fields = ['oldusername', 'newusername', 'password', 'email', 'phonenumber'];
 
@@ -81,7 +80,6 @@ var User = {
 			});
 
 	},
-
 	delete: function(req, res, next){
 		UserModel.findOne({_id: req.user._id}).then(function(user){
 			if(req.params.id != req.user._id) return res.error({message: 'Forbidden action', err: 'Deny'});
@@ -94,13 +92,12 @@ var User = {
 			});
 		});
 	}
-
 };
 
 module.exports = function (app) {
 	app.post('/user/create',	User.create);
 	app.post('/user/login',		User.login);
-	app.update('/user/update',	User.update);
+	app.put('/user/update',	User.update);
 	app.delete('/user/:id',		User.delete);
 	app.get('/user/:id',		User.get);
 
