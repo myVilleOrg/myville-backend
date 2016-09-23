@@ -18,7 +18,7 @@ var User = {
 			bcrypt.hash(req.body.password, salt, function (err, hash) {
 				if(err) return res.error({message: err.message, error: err});
 
-				UserModel.create({nickname: req.body.username, password: hash, email: req.body.email, phonenumber: req.body.phonenumber}).then(function(user){
+				UserModel.create({nickname: req.body.username, password: hash, email: req.body.email, phoneNumber: req.body.phonenumber}).then(function(user){
 					return res.ok(user);
 				});
 			});
@@ -48,12 +48,35 @@ var User = {
 		}).catch(function(err){
 			return res.error({message: 'User not found', error: 'Not found'});
 		});
-	}
+	},
+	update: function(req, res, next){
+		var fields = ['oldusername', 'newusername', 'password', 'email', 'phonenumber'];
+
+		for(var i = 0; i < fields.length; i++) {
+			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'})
+		}
+
+			bcrypt.genSalt(10, function (err, salt) {
+				if(err) return res.error({message: err.message, error: err});
+
+				bcrypt.hash(req.body.password, salt, function (err, hash) {
+						if(err) return res.error({message: err.message, error: err});
+
+					UserModel.findOneAndUpdate({nickname: req.body.oldusername}, {nickname: req.body.newusername, password: hash, email: req.body.email, phoneNumber: req.body.phonenumber}, {new: true}).then(function(user){
+								return res.status(200).json(user);
+					}).catch(function(err){
+						return res.error({message: err.message, error: err});
+					});
+				});
+			});
+
+	},
 };
 
 module.exports = function (app) {
 	app.post('/user/create', 	User.create);
 	app.post('/user/login',		User.login);
 	app.get('/user/:id',	    User.get);
+	app.post('/user/update',	User.update);
 
 };
