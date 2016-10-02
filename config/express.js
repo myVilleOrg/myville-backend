@@ -7,6 +7,7 @@ var bodyParser			= require('body-parser');
 var compress			= require('compression');
 var methodOverride		= require('method-override');
 var jwt					= require('jsonwebtoken');
+var cors				= require('cors');
 
 module.exports = function(app, config) {
 	var env = process.env.NODE_ENV || 'development';
@@ -14,12 +15,6 @@ module.exports = function(app, config) {
 	app.locals.ENV_DEVELOPMENT = env == 'development';
 
 	// Setup CORS
-	app.use(function(req, res, next) {
-		res.setHeader('Access-Control-Allow-Origin', 	'*');
-		res.setHeader('Access-Control-Allow-Methods', 	'GET, POST');
-		res.setHeader('Access-Control-Allow-Headers', 	'X-Requested-With,content-type, Authorization');
-		next();
-	});
 	app.use(logger('dev'));
 	app.use(bodyParser.json());
 	app.use(bodyParser.urlencoded({
@@ -38,6 +33,7 @@ module.exports = function(app, config) {
 		};
 		next();
 	});
+	app.use(cors());
 
 	app.all('*', function(req, res, next){
 		for(var i = 0; i < config.nosecurePath.length; i++) {
