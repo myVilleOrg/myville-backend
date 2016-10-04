@@ -3,7 +3,10 @@ var express			= require('express'),
 	UserModel		= mongoose.model('User'),
 	jwt				= require('jsonwebtoken'),
 	secretConfig	= require('../../config/config'),
-	bcrypt			= require('bcrypt');
+	bcrypt			= require('bcrypt'),
+	FB				= require('fb'),
+	shortid			= require('shortid'),
+	slug			= require('slug');
 
 var salt = bcrypt.genSaltSync(10);
 var User = {
@@ -47,6 +50,47 @@ var User = {
 			return res.ok({token: token, user: user});
 		}).catch(function(err){
 			return res.error({message : 'Login failed', error: 'Error'});
+		});
+	},
+	loginFacebook: function(req, res, next) {
+		if(!req.body.accessToken) return res.status(404).json({message: 'Access Token', error: 'Missing'});
+
+		FB.setAccessToken(req.body.accessToken);
+
+		FB.api('/me', function(fbUser){
+			if(!fbUser || fbUser.error){
+				var error = !fbUser ? 'error occurred' : fbUser.error;
+				return res.error({message: error});
+			}
+			UserModel.findOne({facebook_id: fbUser.id}).then(function(user){
+				if(user) { // we log user with our token
+					if(user.deleted === true) { // we reactivate user visibility
+						UserModel.update({_id: user._id}, {deleted: true}).then();
+					}
+					var token = jwt.sign(user, secretConfig.tokenSalt, {
+						expiresIn: '1440m'
+					});
+					user.password = undefined; // remove password for return object
+					return res.ok({token: token, user: user});
+				} else {
+					bcrypt.genSalt(10, function (err, salt) {
+						if(err) return res.error({message: err.message, error: err});
+						var password = shortid.generate();
+						bcrypt.hash(password, salt, function (err, hash) {
+							if(err) return res.error({message: err.message, error: err});
+							var slugify = slug(fbUser.name);
+							if(!fbUser.mail) var mail =	slugify + '@facebook.com';
+							UserModel.create({nickname: slugify, password: hash, email: fbUser.mail, phonenumber: req.body.phonenumber, avatar: '', deleted: false, uas: [], facebook_id: fbUser.id}).then(function(user){
+								user.password = undefined; // remove password from return
+								var token = jwt.sign(user, secretConfig.tokenSalt, {
+									expiresIn: '1440m'
+								});
+								return res.ok({token: token, user: user});
+							});
+						});
+					});
+				}
+			});
 		});
 	},
 	get: function(req, res, next){
@@ -95,9 +139,10 @@ var User = {
 };
 
 module.exports = function (app) {
-	app.post('/user/create',	User.create);
-	app.post('/user/login',		User.login);
-	app.put('/user/update',		User.update);
-	app.delete('/user/:id',		User.delete);
-	app.get('/user/:id',		User.get);
+	app.post('/user/create',			User.create);
+	app.post('/user/login',				User.login);
+	app.post('/user/login/facebook',	User.loginFacebook);
+	app.put('/user/update',				User.update);
+	app.delete('/user/:id',				User.delete);
+	app.get('/user/:id',				User.get);
 };

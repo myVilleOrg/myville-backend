@@ -3,13 +3,14 @@ var mongoose 	= require('mongoose'),
 	UASchema	= require('./ua');
 
 var UserSchema = new Schema({
-	nickname: String,
-	password: String,
-	avatar: String,
-	email: String,
+	nickname: {type: String, required: true},
+	password: {type: String, required: true},
+	avatar: {type: String, required: false},
+	email: {type: String, required: true},
 	phoneNumber: Number,
-	deleted: Boolean,
-	uas: [UASchema]
+	deleted: {type: String, required: true},
+	uas: [UASchema],
+	facebook_id: {type: String, required: false},
 },
 {
 	timestamps: true
