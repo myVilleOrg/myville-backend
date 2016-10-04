@@ -79,13 +79,15 @@ var User = {
 						bcrypt.hash(password, salt, function (err, hash) {
 							if(err) return res.error({message: err.message, error: err});
 							var slugify = slug(fbUser.name);
-							if(!fbUser.mail) var mail =	slugify + '@facebook.com';
-							UserModel.create({nickname: slugify, password: hash, email: fbUser.mail, phonenumber: req.body.phonenumber, avatar: '', deleted: false, uas: [], facebook_id: fbUser.id}).then(function(user){
+							var mail = fbUser.mail ? fbUser.mail : slugify + '@facebook.com';
+							UserModel.create({nickname: slugify, password: hash, email: mail, phonenumber: req.body.phonenumber, avatar: '', deleted: false, uas: [], facebook_id: fbUser.id}).then(function(user){
 								user.password = undefined; // remove password from return
 								var token = jwt.sign(user, secretConfig.tokenSalt, {
 									expiresIn: '1440m'
 								});
 								return res.ok({token: token, user: user});
+							}).catch(function(err){
+								console.log(err);
 							});
 						});
 					});
