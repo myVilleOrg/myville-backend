@@ -57,7 +57,8 @@ var User = {
 
 		FB.setAccessToken(req.body.accessToken);
 
-		FB.api('/me', function(fbUser){
+		FB.api('/me', {fields: 'email, name'}, function(fbUser){
+			console.log(fbUser);
 			if(!fbUser || fbUser.error){
 				var error = !fbUser ? 'error occurred' : fbUser.error;
 				return res.error({message: error});
