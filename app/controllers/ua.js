@@ -19,6 +19,7 @@ var Ua = {
 	},
 
 	get: function(req, res, next){
+		// TODO dont display private or deleted
 		UaModel.findOne({_id: req.params.id}).then(function(ua){
 			if(!ua || ua.deleted) return res.error({message: 'Ua does not exist', error: 'Not found'});
 			return res.ok(ua);
@@ -28,12 +29,13 @@ var Ua = {
 	},
 
 	mine: function(req, res, next){
-		UaModel.find({owner: req.user, deleted: false}).then(function(uas){
+		UaModel.find({owner: req.user._id, deleted: false}).then(function(uas){
 			return res.ok(uas);
 		});
 	},
 
 	publish: function(req, res, next){
+		// TODO Need to check if im owner of ua
 		UaModel.findOne({_id: req.params.id}).then(function(ua){
 			if(!ua) return res.error({message: 'Ua does not exist', error: 'Not found'});
 			if(ua.private){
@@ -42,8 +44,7 @@ var Ua = {
 				}).catch(function(err){
 					return res.error({message: err.message, error: err});
 				});
-			}
-			else{
+			} else{
 				UaModel.update({_id: ua.id}, {private: true}).then(function(data){
 					return res.ok({message: 'OK'});
 				}).catch(function(err){
@@ -54,6 +55,7 @@ var Ua = {
 	},
 
 	delete: function(req, res, next){
+		// TODO Need to check if im owner of ua
 		UaModel.findOne({_id: req.params.id}).then(function(ua){
 			if(!ua) return res.error({message: 'Ua does not exist', error: 'Not found'});
 			if(ua.deleted) return res.error({message: 'Already done'});
@@ -67,9 +69,9 @@ var Ua = {
 };
 
 module.exports = function (app) {
-	app.post('/ua/create', 	Ua.create);
-	app.get('/ua/:id',	    Ua.get);
+	app.post('/ua/create', 		Ua.create);
+	app.get('/ua/:id',	    	Ua.get);
 	app.get('/ua/get/mine',	    Ua.mine);
 	app.put('/ua/publish/:id',	Ua.publish);
-	app.delete('/ua/:id',	Ua.delete);
+	app.delete('/ua/:id',		Ua.delete);
 };

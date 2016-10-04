@@ -15,18 +15,21 @@ var User = {
 		for(var i = 0; i < fields.length; i++) {
 			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'})
 		}
-		bcrypt.genSalt(10, function (err, salt) {
-			if(err) return res.error({message: err.message, error: err});
-
-			bcrypt.hash(req.body.password, salt, function (err, hash) {
+		UserModel.findOne({email: req.body.email}, function(email, err){
+			if(email) return res.error({message: 'Email used', error: 'Already'});
+			bcrypt.genSalt(10, function (err, salt) {
 				if(err) return res.error({message: err.message, error: err});
 
-				UserModel.create({nickname: req.body.username, password: hash, email: req.body.email, phonenumber: req.body.phonenumber, avatar: '', deleted: false, uas: []}).then(function(user){
-					user.password = undefined; // remove password from return
-					var token = jwt.sign(user, secretConfig.tokenSalt, {
-						expiresIn: '1440m'
+				bcrypt.hash(req.body.password, salt, function (err, hash) {
+					if(err) return res.error({message: err.message, error: err});
+
+					UserModel.create({nickname: req.body.username, password: hash, email: req.body.email, phonenumber: req.body.phonenumber, avatar: '', deleted: false, uas: []}).then(function(user){
+						user.password = undefined; // remove password from return
+						var token = jwt.sign(user, secretConfig.tokenSalt, {
+							expiresIn: '1440m'
+						});
+						return res.ok({token: token, user: user});
 					});
-					return res.ok({token: token, user: user});
 				});
 			});
 		});
@@ -35,7 +38,7 @@ var User = {
 		if(!req.body.username) return res.status(404).json({message: 'Username', error: 'Missing'});
 		if(!req.body.password) return res.status(404).json({message: 'Password', error: 'Missing'});
 
-		UserModel.findOne({nickname: req.body.username}).then(function(user){
+		UserModel.findOne({email: req.body.email}).then(function(user){
 			if(!bcrypt.compareSync(req.body.password, user.password)) return res.json({message : 'Login failed', error: 'Error'});
 
 			if(user.deleted === true) { // we reactivate user visibility
@@ -109,7 +112,7 @@ var User = {
 		var fields = ['newusername', 'password', 'email', 'phonenumber'];
 
 		for(var i = 0; i < fields.length; i++) {
-			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'})
+			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'});
 		}
 
 		bcrypt.genSalt(10, function (err, salt) {
