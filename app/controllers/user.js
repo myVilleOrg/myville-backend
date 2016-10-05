@@ -11,7 +11,7 @@ var express			= require('express'),
 var salt = bcrypt.genSaltSync(10);
 var User = {
 	create: function(req, res, next){
-		var fields = ['username', 'password', 'email', 'phonenumber'];
+		var fields = ['email', 'password', 'email', 'phonenumber'];
 		for(var i = 0; i < fields.length; i++) {
 			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'})
 		}
@@ -35,7 +35,7 @@ var User = {
 		});
 	},
 	login: function(req, res, next){
-		if(!req.body.username) return res.status(404).json({message: 'Username', error: 'Missing'});
+		if(!req.body.email) return res.status(404).json({message: 'Username', error: 'Missing'});
 		if(!req.body.password) return res.status(404).json({message: 'Password', error: 'Missing'});
 
 		UserModel.findOne({email: req.body.email}).then(function(user){
@@ -66,6 +66,7 @@ var User = {
 				var error = !fbUser ? 'error occurred' : fbUser.error;
 				return res.error({message: error});
 			}
+			//TODO link fb account if same email
 			UserModel.findOne({facebook_id: fbUser.id}).then(function(user){
 				if(user) { // we log user with our token
 					if(user.deleted === true) { // we reactivate user visibility
@@ -76,7 +77,7 @@ var User = {
 					});
 					user.password = undefined; // remove password for return object
 					return res.ok({token: token, user: user});
-				} else {
+				} else { //create user with fb id
 					bcrypt.genSalt(10, function (err, salt) {
 						if(err) return res.error({message: err.message, error: err});
 						var password = shortid.generate();
