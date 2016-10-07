@@ -4,8 +4,8 @@ var mongoose = require('mongoose'),
 var UaSchema = new Schema({
 	place: {type: String, required: true},
 	description: {type: String, required: true},
-	deleted: {type: String, required: true},
-	private: {type: String, required: true},
+	deleted: {type: Boolean, required: true},
+	private: {type: Boolean, required: true},
 	owner: {type: Schema.Types.ObjectId, ref: 'User'}
 },
 {
