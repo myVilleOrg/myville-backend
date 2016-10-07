@@ -9,7 +9,7 @@ var UaSchema = new Schema({
 	location: {
 		type: {
 			type: String,
-			defaut: 'Point'
+			default: 'Point'
 		},
 		coordinates: [Number]
 	}

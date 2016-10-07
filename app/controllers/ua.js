@@ -1,7 +1,8 @@
 var express 		= require('express'),
 	mongoose 		= require('mongoose'),
 	UaModel 		= mongoose.model('Ua'),
-	UserModel 		= mongoose.model('User');
+	UserModel 		= mongoose.model('User'),
+	GeoJSON 		= require('mongodb-geojson-normalize');
 
 var Ua = {
 	create: function(req, res, next){
@@ -9,7 +10,7 @@ var Ua = {
 		for(var i = 0; i < fields.length; i++) {
 			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'});
 		}
-		UaModel.create({description: req.body.description, deleted: false, owner: req.user._id, private: true, location: {type: 'Point', coordinates: [48.733892, -3.460255]}}).then(function(ua){
+		UaModel.create({description: req.body.description, deleted: false, owner: req.user._id, private: true, location: {type: 'Point'}}).then(function(ua){
 			UserModel.findOne({_id: req.user._id}).then(function(user){
 				user.uas.push(ua._id);
 				user.save();
@@ -40,8 +41,12 @@ var Ua = {
 					]
 				}
 			}
-		, deleted: false}).then(function(uas){
-			return res.ok(uas);
+		, deleted: false}).populate({
+			path: 'owner',
+			select: '_id avatar deleted nickname facebook_id'
+		}).then(function(uas){
+			var uaGeoJSON = GeoJSON.parse(uas, {path: 'location'});
+			return res.ok(uaGeoJSON);
 		}).catch(function(err){
 			return res.error({message: err});
 		});
@@ -88,7 +93,7 @@ var Ua = {
 
 module.exports = function (app) {
 	app.post('/ua/create', 		Ua.create);
-	app.post('/ua/get/geo', 	Ua.getGeo);
+	app.get('/ua/get/geo', 	Ua.getGeo);
 	app.get('/ua/get/mine',	    Ua.mine);
 	app.put('/ua/publish/:id',	Ua.publish);
 	app.get('/ua/:id',	    	Ua.get);
