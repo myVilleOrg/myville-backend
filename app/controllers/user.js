@@ -13,7 +13,6 @@ var User = {
 	create: function(req, res, next){
 		var fields = ['username', 'email', 'password', 'phonenumber'];
 		for(var i = 0; i < fields.length; i++) {
-			console.log("lol");
 			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'})
 		}
 		UserModel.findOne({email: req.body.email}, function(email, err){
@@ -101,7 +100,7 @@ var User = {
 							});
 						});
 					});
-					
+
 				}
 			});
 		});
@@ -116,37 +115,41 @@ var User = {
 		});
 	},
 	update: function(req, res, next){
-		var newusername;
 		UserModel.findOne({_id: req.user._id}).then(function(user){
-			if(req.body.newusername && user.username != newusername && !req.body.password){
-				newusername = req.body.newusername
-				console.log("lol");
-				UserModel.update({_id: user._id}, {username: req.body.newusername}).then(function(user){
+			if(req.body.username && user.username != req.body.username && !req.body.password){
+				UserModel.update({_id: user._id}, {username: req.body.username}).then(function(user){
 					return res.ok(user);
 				}).catch(function(err){
 					return res.error({message: err.message, error: err});
 				});
 			}
-			if(req.body.password && !req.body.newusername){
-				bcrypt.hash(req.body.password, salt, function (err, hash) {
-					if(err) return res.error({message: err.message, error: err});
-					UserModel.update({_id: user._id}, {password: hash}).then(function(user){
-						return res.ok(user);
-					}).catch(function(err){
-						return res.error({message: err.message, error: err});
+			if(req.body.password && req.body.oldPassword && !req.body.username){
+				if(bcrypt.compareSync(req.body.oldPassword, user.password)){
+					bcrypt.hash(req.body.password, salt, function (err, hash) {
+						if(err) return res.error({message: err.message, error: err});
+						UserModel.update({_id: user._id}, {password: hash}).then(function(user){
+							return res.ok(user);
+						}).catch(function(err){
+							return res.error({message: err.message, error: err});
+						});
 					});
-				});
+				} else {
+					return res.error({message: 'Bad old password'});
+				}
 			}
-			if(req.body.newusername && req.body.password && (user.username != newusername || user.password != hash)){
-				newusername = req.body.newusername;
-				bcrypt.hash(req.body.password, salt, function (err, hash) {
-					if(err) return res.error({message: err.message, error: err});
-					UserModel.update({_id: user._id}, {username: newusername, password: hash}).then(function(user){
-						return res.ok(user);
-					}).catch(function(err){
-						return res.error({message: err.message, error: err});
+			if(req.body.username && req.body.password && req.body.oldPassword){
+				if(bcrypt.compareSync(req.body.password, user.password)) {
+					bcrypt.hash(req.body.password, salt, function (err, hash) {
+						if(err) return res.error({message: err.message, error: err});
+						UserModel.update({_id: user._id}, {username: req.body.username, password: hash}).then(function(user){
+							return res.ok(user);
+						}).catch(function(err){
+							return res.error({message: err.message, error: err});
+						});
 					});
-				});
+				} else {
+					return res.error({message: 'Bad old password'});
+				}
 			}
 		}).catch(function(err){
 			return res.error({message: err.message, error: err});
