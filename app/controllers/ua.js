@@ -10,7 +10,7 @@ var Ua = {
 		for(var i = 0; i < fields.length; i++) {
 			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'});
 		}
-		UaModel.create({description: req.body.description, deleted: false, owner: req.user._id, private: true, location: {type: 'Point'}}).then(function(ua){
+		UaModel.create({description: req.body.description, deleted: false, owner: req.user._id, private: true, location: {"type": "Point", "coordinates": [-3.4648987, 48.729296]}}).then(function(ua){
 			UserModel.findOne({_id: req.user._id}).then(function(user){
 				user.uas.push(ua._id);
 				user.save();
@@ -22,9 +22,8 @@ var Ua = {
 	},
 
 	get: function(req, res, next){
-		// TODO dont display private or deleted
-		UaModel.findOne({_id: req.params.id}).then(function(ua){
-			if(!ua || ua.deleted) return res.error({message: 'Ua does not exist', error: 'Not found'});
+		UaModel.findOne({_id: req.params.id, deleted: false}).then(function(ua){
+			if(!ua ||(ua.private && ua.owner != req.user._id)) return res.error({message: 'Ua does not exist', error: 'Not found'});
 			return res.ok(ua);
 		}).catch(function(err){
 			return res.error({message: 'Ua not found', error: 'Not found'});
@@ -34,11 +33,21 @@ var Ua = {
 		var mapBorder = JSON.parse(req.query.map);
 		UaModel.find({
 			location: {
-				$geoWithin: {
-					$box: [
+				$geoIntersects: {
+					/*$box: [
 						[mapBorder[0][0], mapBorder[0][1]],
 						[mapBorder[1][0], mapBorder[1][1]]
-					]
+					]*/
+					$geometry: {
+						type: 'Polygon',
+						coordinates: [[
+							[mapBorder[0][0], mapBorder[0][1]],
+							[mapBorder[1][0], mapBorder[1][1]],
+							[mapBorder[2][0], mapBorder[2][1]],
+							[mapBorder[3][0], mapBorder[3][1]],
+							[mapBorder[0][0], mapBorder[0][1]],
+						]]
+					}
 				}
 			}
 		, deleted: false}).populate({
@@ -58,9 +67,8 @@ var Ua = {
 	},
 
 	publish: function(req, res, next){
-		// TODO Need to check if im owner of ua
 		UaModel.findOne({_id: req.params.id}).then(function(ua){
-			if(!ua) return res.error({message: 'Ua does not exist', error: 'Not found'});
+			if(!ua || ua.owner != req.user._id) return res.error({message: 'Ua does not exist / Ua is not yours', error: 'Not found / Not yours'});
 			if(ua.private){
 				UaModel.update({_id: ua.id}, {private: false}).then(function(data){
 					return res.ok({message: 'OK'});
@@ -78,9 +86,8 @@ var Ua = {
 	},
 
 	delete: function(req, res, next){
-		// TODO Need to check if im owner of ua
 		UaModel.findOne({_id: req.params.id}).then(function(ua){
-			if(!ua) return res.error({message: 'Ua does not exist', error: 'Not found'});
+			if(!ua || ua.owner != req.user._id) return res.error({message: 'Ua does not exist / Ua is not yours', error: 'Not found / Not yours'});
 			if(ua.deleted) return res.error({message: 'Already done'});
 			UaModel.update({_id: ua.id}, {deleted: true}).then(function(data){
 				return res.ok({message: 'OK'});
