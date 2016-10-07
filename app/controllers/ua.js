@@ -29,7 +29,7 @@ var Ua = {
 			return res.error({message: 'Ua not found', error: 'Not found'});
 		});
 	},
-	fuckingGet: function(req, res, next){
+	getGeo: function(req, res, next){
 		var mapBorder = JSON.parse(req.query.map);
 		UaModel.find({
 			location: {
@@ -88,9 +88,9 @@ var Ua = {
 
 module.exports = function (app) {
 	app.post('/ua/create', 		Ua.create);
-	app.get('/ua/:id',	    	Ua.get);
-	app.post('/ua/get/geo', 		Ua.fuckingGet);
+	app.post('/ua/get/geo', 	Ua.getGeo);
 	app.get('/ua/get/mine',	    Ua.mine);
 	app.put('/ua/publish/:id',	Ua.publish);
+	app.get('/ua/:id',	    	Ua.get);
 	app.delete('/ua/:id',		Ua.delete);
 };
