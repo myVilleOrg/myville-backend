@@ -5,16 +5,18 @@ var express 		= require('express'),
 
 var Ua = {
 	create: function(req, res, next){
-		var fields = ['place', 'description'];
+		var fields = ['description'];
 		for(var i = 0; i < fields.length; i++) {
 			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'});
 		}
-		UaModel.create({place: req.body.place, description: req.body.description, deleted: false, owner: req.user._id, private: true}).then(function(ua){
+		UaModel.create({description: req.body.description, deleted: false, owner: req.user._id, private: true, location: {type: 'Point', coordinates: [48.733892, -3.460255]}}).then(function(ua){
 			UserModel.findOne({_id: req.user._id}).then(function(user){
 				user.uas.push(ua._id);
 				user.save();
 				return res.ok(ua);
 			});
+		}).catch(function(err){
+			return res.error({message: err});
 		});
 	},
 
@@ -27,7 +29,23 @@ var Ua = {
 			return res.error({message: 'Ua not found', error: 'Not found'});
 		});
 	},
-
+	fuckingGet: function(req, res, next){
+		var mapBorder = JSON.parse(req.query.map);
+		UaModel.find({
+			location: {
+				$geoWithin: {
+					$box: [
+						[mapBorder[0][0], mapBorder[0][1]],
+						[mapBorder[1][0], mapBorder[1][1]]
+					]
+				}
+			}
+		, deleted: false}).then(function(uas){
+			return res.ok(uas);
+		}).catch(function(err){
+			return res.error({message: err});
+		});
+	},
 	mine: function(req, res, next){
 		UaModel.find({owner: req.user._id, deleted: false}).then(function(uas){
 			return res.ok(uas);
@@ -71,6 +89,7 @@ var Ua = {
 module.exports = function (app) {
 	app.post('/ua/create', 		Ua.create);
 	app.get('/ua/:id',	    	Ua.get);
+	app.post('/ua/get/geo', 		Ua.fuckingGet);
 	app.get('/ua/get/mine',	    Ua.mine);
 	app.put('/ua/publish/:id',	Ua.publish);
 	app.delete('/ua/:id',		Ua.delete);
