@@ -11,8 +11,9 @@ var express			= require('express'),
 var salt = bcrypt.genSaltSync(10);
 var User = {
 	create: function(req, res, next){
-		var fields = ['email', 'password', 'email', 'phonenumber'];
+		var fields = ['username', 'email', 'password', 'phonenumber'];
 		for(var i = 0; i < fields.length; i++) {
+			console.log("lol");
 			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'})
 		}
 		UserModel.findOne({email: req.body.email}, function(email, err){
@@ -23,13 +24,13 @@ var User = {
 				bcrypt.hash(req.body.password, salt, function (err, hash) {
 					if(err) return res.error({message: err.message, error: err});
 
-					UserModel.create({nickname: req.body.username, password: hash, email: req.body.email, phonenumber: req.body.phonenumber, avatar: '', deleted: false, uas: []}).then(function(user){
+					UserModel.create({username: req.body.username, password: hash, email: req.body.email, phonenumber: req.body.phonenumber, avatar: '', deleted: false, uas: []}).then(function(user){
 						user.password = undefined; // remove password from return
 						var token = jwt.sign(user, secretConfig.tokenSalt, {
 							expiresIn: '1440m'
 						});
 						return res.ok({token: token, user: user});
-					});
+					}).catch(function(error){console.log(error);});
 				});
 			});
 		});
@@ -42,7 +43,7 @@ var User = {
 			if(!bcrypt.compareSync(req.body.password, user.password)) return res.json({message : 'Login failed', error: 'Error'});
 
 			if(user.deleted === true) { // we reactivate user visibility
-				UserModel.update({_id: user._id}, {deleted: true}).then();
+				UserModel.update({_id: user._id}, {deleted: false}).then();
 			}
 
 			var token = jwt.sign(user, secretConfig.tokenSalt, {
@@ -70,7 +71,7 @@ var User = {
 			UserModel.findOne({facebook_id: fbUser.id}).then(function(user){
 				if(user) { // we log user with our token
 					if(user.deleted === true) { // we reactivate user visibility
-						UserModel.update({_id: user._id}, {deleted: true}).then();
+						UserModel.update({_id: user._id}, {deleted: false}).then();
 					}
 					var token = jwt.sign(user, secretConfig.tokenSalt, {
 						expiresIn: '1440m'
@@ -78,30 +79,35 @@ var User = {
 					user.password = undefined; // remove password for return object
 					return res.ok({token: token, user: user});
 				} else { //create user with fb id
-					bcrypt.genSalt(10, function (err, salt) {
-						if(err) return res.error({message: err.message, error: err});
-						var password = shortid.generate();
-						bcrypt.hash(password, salt, function (err, hash) {
+					UserModel.findOneAndUpdate({email: fbUser.email}, {facebook_id: fbUser.id}).then(function(user){
+						return res.ok(user);
+					}).catch(function(){
+						bcrypt.genSalt(10, function (err, salt) {
 							if(err) return res.error({message: err.message, error: err});
-							var slugify = slug(fbUser.name);
-							var mail = fbUser.email ? fbUser.email : slugify + '@facebook.com';
-							UserModel.create({nickname: slugify, password: hash, email: mail, phonenumber: req.body.phonenumber, avatar: '', deleted: false, uas: [], facebook_id: fbUser.id}).then(function(user){
-								user.password = undefined; // remove password from return
-								var token = jwt.sign(user, secretConfig.tokenSalt, {
-									expiresIn: '1440m'
+							var password = shortid.generate();
+							bcrypt.hash(password, salt, function (err, hash) {
+								if(err) return res.error({message: err.message, error: err});
+								var slugify = slug(fbUser.name);
+								var mail = fbUser.email ? fbUser.email : slugify + '@facebook.com';
+								UserModel.create({username: slugify, password: hash, email: mail, phonenumber: req.body.phonenumber, avatar: '', deleted: false, uas: [], facebook_id: fbUser.id}).then(function(user){
+									user.password = undefined; // remove password from return
+									var token = jwt.sign(user, secretConfig.tokenSalt, {
+										expiresIn: '1440m'
+									});
+									return res.ok({token: token, user: user});
+								}).catch(function(err){
+									console.log(err);
 								});
-								return res.ok({token: token, user: user});
-							}).catch(function(err){
-								console.log(err);
 							});
 						});
 					});
+					
 				}
 			});
 		});
 	},
 	get: function(req, res, next){
-		UserModel.findOne({_id: req.params.id, deleted: false}).select('nickname _id createdAt avatar').then(function(user){
+		UserModel.findOne({_id: req.params.id, deleted: false}).select('username _id createdAt avatar').then(function(user){
 			if(!user) return res.error({message: 'User not found', error: 'Not found'});
 
 			return res.status(200).json(user);
@@ -110,26 +116,41 @@ var User = {
 		});
 	},
 	update: function(req, res, next){
-		var fields = ['newusername', 'password', 'email', 'phonenumber'];
-
-		for(var i = 0; i < fields.length; i++) {
-			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'});
-		}
-
-		bcrypt.genSalt(10, function (err, salt) {
-			if(err) return res.error({message: err.message, error: err});
-
-			bcrypt.hash(req.body.password, salt, function (err, hash) {
-				if(err) return res.error({message: err.message, error: err});
-
-				UserModel.findOneAndUpdate({_id: req.user._id}, {nickname: req.body.newusername, password: hash, email: req.body.email, phoneNumber: req.body.phonenumber}, {new: true}).then(function(user){
+		var newusername;
+		UserModel.findOne({_id: req.user._id}).then(function(user){
+			if(req.body.newusername && user.username != newusername && !req.body.password){
+				newusername = req.body.newusername
+				console.log("lol");
+				UserModel.update({_id: user._id}, {username: req.body.newusername}).then(function(user){
 					return res.ok(user);
 				}).catch(function(err){
 					return res.error({message: err.message, error: err});
 				});
-			});
+			}
+			if(req.body.password && !req.body.newusername){
+				bcrypt.hash(req.body.password, salt, function (err, hash) {
+					if(err) return res.error({message: err.message, error: err});
+					UserModel.update({_id: user._id}, {password: hash}).then(function(user){
+						return res.ok(user);
+					}).catch(function(err){
+						return res.error({message: err.message, error: err});
+					});
+				});
+			}
+			if(req.body.newusername && req.body.password && (user.username != newusername || user.password != hash)){
+				newusername = req.body.newusername;
+				bcrypt.hash(req.body.password, salt, function (err, hash) {
+					if(err) return res.error({message: err.message, error: err});
+					UserModel.update({_id: user._id}, {username: newusername, password: hash}).then(function(user){
+						return res.ok(user);
+					}).catch(function(err){
+						return res.error({message: err.message, error: err});
+					});
+				});
+			}
+		}).catch(function(err){
+			return res.error({message: err.message, error: err});
 		});
-
 	},
 	delete: function(req, res, next){
 		UserModel.findOne({_id: req.user._id}).then(function(user){
