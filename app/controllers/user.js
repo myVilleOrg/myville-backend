@@ -9,6 +9,30 @@ var express			= require('express'),
 	slug			= require('slug');
 
 var salt = bcrypt.genSaltSync(10);
+var Tools = {
+	createAccount: function(req, res, next, fbUser){
+		return new Promise(function(resolve, reject){
+			bcrypt.genSalt(10, function (err, salt) {
+				if(err) return res.error({message: err.message, error: err});
+				var password = shortid.generate();
+				bcrypt.hash(password, salt, function (err, hash) {
+					if(err) return res.error({message: err.message, error: err});
+					var slugify = slug(fbUser.name);
+					var mail = fbUser.email ? fbUser.email : slugify + '@facebook.com';
+					UserModel.create({username: slugify, password: hash, email: mail, phonenumber: req.body.phonenumber, avatar: '', deleted: false, uas: [], facebook_id: fbUser.id}).then(function(user){
+						user.password = undefined; // remove password from return
+						var token = jwt.sign(user, secretConfig.tokenSalt, {
+							expiresIn: '1440m'
+						});
+						resolve({token: token, user: user});
+					}).catch(function(err){
+						reject(err);
+					});
+				});
+			});
+		});
+	}
+};
 var User = {
 	create: function(req, res, next){
 		var fields = ['username', 'email', 'password', 'phonenumber'];
@@ -79,25 +103,13 @@ var User = {
 					return res.ok({token: token, user: user});
 				} else { //create user with fb id
 					UserModel.findOneAndUpdate({email: fbUser.email}, {facebook_id: fbUser.id}).then(function(user){
+						if(!user) Tools.createAccount(req, res, next, fbUser).then(function(data){
+							return res.ok(data);
+						});
 						return res.ok(user);
 					}).catch(function(){
-						bcrypt.genSalt(10, function (err, salt) {
-							if(err) return res.error({message: err.message, error: err});
-							var password = shortid.generate();
-							bcrypt.hash(password, salt, function (err, hash) {
-								if(err) return res.error({message: err.message, error: err});
-								var slugify = slug(fbUser.name);
-								var mail = fbUser.email ? fbUser.email : slugify + '@facebook.com';
-								UserModel.create({username: slugify, password: hash, email: mail, phonenumber: req.body.phonenumber, avatar: '', deleted: false, uas: [], facebook_id: fbUser.id}).then(function(user){
-									user.password = undefined; // remove password from return
-									var token = jwt.sign(user, secretConfig.tokenSalt, {
-										expiresIn: '1440m'
-									});
-									return res.ok({token: token, user: user});
-								}).catch(function(err){
-									console.log(err);
-								});
-							});
+						Tools.createAccount(req, res, next, fbUser).then(function(data){
+							return res.ok(data);
 						});
 					});
 

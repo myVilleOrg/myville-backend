@@ -16,6 +16,7 @@
     "glob": "^6.0.4",
     "jsonwebtoken": "^7.1.9",
     "method-override": "^2.3.0",
+    "mongodb-geojson-normalize": "^0.1.2",
     "mongoose": "^4.1.2",
     "morgan": "^1.6.1",
     "serve-favicon": "^2.3.0",

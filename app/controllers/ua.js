@@ -1,20 +1,23 @@
 var express 		= require('express'),
 	mongoose 		= require('mongoose'),
 	UaModel 		= mongoose.model('Ua'),
-	UserModel 		= mongoose.model('User');
+	UserModel 		= mongoose.model('User'),
+	GeoJSON 		= require('mongodb-geojson-normalize');
 
 var Ua = {
 	create: function(req, res, next){
-		var fields = ['place', 'description'];
+		var fields = ['description'];
 		for(var i = 0; i < fields.length; i++) {
 			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'});
 		}
-		UaModel.create({place: req.body.place, description: req.body.description, deleted: false, owner: req.user._id, private: true}).then(function(ua){
+		UaModel.create({description: req.body.description, deleted: false, owner: req.user._id, private: true, location: {"type": "Point", "coordinates": [-3.4648987, 48.729296]}}).then(function(ua){
 			UserModel.findOne({_id: req.user._id}).then(function(user){
 				user.uas.push(ua._id);
 				user.save();
 				return res.ok(ua);
 			});
+		}).catch(function(err){
+			return res.error({message: err});
 		});
 	},
 
@@ -26,7 +29,37 @@ var Ua = {
 			return res.error({message: 'Ua not found', error: 'Not found'});
 		});
 	},
-
+	getGeo: function(req, res, next){
+		var mapBorder = JSON.parse(req.query.map);
+		UaModel.find({
+			location: {
+				$geoIntersects: {
+					/*$box: [
+						[mapBorder[0][0], mapBorder[0][1]],
+						[mapBorder[1][0], mapBorder[1][1]]
+					]*/
+					$geometry: {
+						type: 'Polygon',
+						coordinates: [[
+							[mapBorder[0][0], mapBorder[0][1]],
+							[mapBorder[1][0], mapBorder[1][1]],
+							[mapBorder[2][0], mapBorder[2][1]],
+							[mapBorder[3][0], mapBorder[3][1]],
+							[mapBorder[0][0], mapBorder[0][1]],
+						]]
+					}
+				}
+			}
+		, deleted: false}).populate({
+			path: 'owner',
+			select: '_id avatar deleted nickname facebook_id'
+		}).then(function(uas){
+			var uaGeoJSON = GeoJSON.parse(uas, {path: 'location'});
+			return res.ok(uaGeoJSON);
+		}).catch(function(err){
+			return res.error({message: err});
+		});
+	},
 	mine: function(req, res, next){
 		UaModel.find({owner: req.user._id, deleted: false}).then(function(uas){
 			return res.ok(uas);
@@ -67,8 +100,9 @@ var Ua = {
 
 module.exports = function (app) {
 	app.post('/ua/create', 		Ua.create);
-	app.get('/ua/:id',	    	Ua.get);
+	app.get('/ua/get/geo', 	Ua.getGeo);
 	app.get('/ua/get/mine',	    Ua.mine);
 	app.put('/ua/publish/:id',	Ua.publish);
+	app.get('/ua/:id',	    	Ua.get);
 	app.delete('/ua/:id',		Ua.delete);
 };
