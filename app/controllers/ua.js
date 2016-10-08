@@ -31,6 +31,12 @@ var Ua = {
 	},
 	getGeo: function(req, res, next){
 		var mapBorder = JSON.parse(req.query.map);
+		for(var i = 0; i < mapBorder.length; i++){
+			if(mapBorder[i][0] > 180) mapBorder[i][0] = 179;
+			if(mapBorder[i][0] < -180) mapBorder[i][0] = -179;
+			if(mapBorder[i][1] > 90) mapBorder[i][1] = 90;
+			if(mapBorder[i][1] > -90) mapBorder[i][1] = -90;
+		}
 		UaModel.find({
 			location: {
 				$geoIntersects: {
@@ -40,20 +46,27 @@ var Ua = {
 					]*/
 					$geometry: {
 						type: 'Polygon',
-						coordinates: [[
-							[mapBorder[0][0], mapBorder[0][1]],
-							[mapBorder[1][0], mapBorder[1][1]],
-							[mapBorder[2][0], mapBorder[2][1]],
-							[mapBorder[3][0], mapBorder[3][1]],
-							[mapBorder[0][0], mapBorder[0][1]],
-						]]
+						coordinates: [
+							[
+								[mapBorder[0][0], mapBorder[0][1]],
+								[mapBorder[1][0], mapBorder[1][1]],
+								[-mapBorder[0][0], mapBorder[1][1]],
+								[mapBorder[0][0], -mapBorder[1][1]],
+								[mapBorder[0][0], mapBorder[0][1]],
+							]
+						],
+						crs: {
+							type: "name",
+							properties: { name: "urn:x-mongodb:crs:strictwinding:EPSG:4326" }
+						}
 					}
 				}
 			}
 		, deleted: false}).populate({
 			path: 'owner',
-			select: '_id avatar deleted nickname facebook_id'
+			select: '_id avatar deleted username facebook_id'
 		}).then(function(uas){
+			console.log(uas);
 			var uaGeoJSON = GeoJSON.parse(uas, {path: 'location'});
 			return res.ok(uaGeoJSON);
 		}).catch(function(err){

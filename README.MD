@@ -15,6 +15,7 @@ When it finishes
 ```bash
 $ npm install
 ```
+You have to install mongodb at least v3.0 in order to use Big Polygon feature (https://www.mongodb.com/blog/post/mongodb-30-features-big-polygon). A tutorial to install last version mongodb https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/
 And it should be nice :)
 
 ### Usage

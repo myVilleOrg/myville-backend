@@ -128,19 +128,21 @@ var User = {
 	},
 	update: function(req, res, next){
 		UserModel.findOne({_id: req.user._id}).then(function(user){
-			if(req.body.username && user.username != req.body.username && !req.body.password){
-				UserModel.update({_id: user._id}, {username: req.body.username}).then(function(user){
-					return res.ok(user);
-				}).catch(function(err){
-					return res.error({message: err.message, error: err});
-				});
+			if(req.body.username && !req.body.password){
+				if(user.username != req.body.username){
+					UserModel.update({_id: user._id}, {username: req.body.username}).then(function(user){
+						return res.ok({message: 'OK'});
+					}).catch(function(err){
+						return res.error({message: err.message, error: err});
+					});
+				} else return res.error({message: 'Same username'});
 			}
 			if(req.body.password && req.body.oldPassword && !req.body.username){
 				if(bcrypt.compareSync(req.body.oldPassword, user.password)){
 					bcrypt.hash(req.body.password, salt, function (err, hash) {
 						if(err) return res.error({message: err.message, error: err});
 						UserModel.update({_id: user._id}, {password: hash}).then(function(user){
-							return res.ok(user);
+							return res.ok({message: 'OK'});
 						}).catch(function(err){
 							return res.error({message: err.message, error: err});
 						});
@@ -154,7 +156,7 @@ var User = {
 					bcrypt.hash(req.body.password, salt, function (err, hash) {
 						if(err) return res.error({message: err.message, error: err});
 						UserModel.update({_id: user._id}, {username: req.body.username, password: hash}).then(function(user){
-							return res.ok(user);
+							return res.ok({message: 'OK'});
 						}).catch(function(err){
 							return res.error({message: err.message, error: err});
 						});
