@@ -6,11 +6,12 @@ var express 		= require('express'),
 
 var Ua = {
 	create: function(req, res, next){
-		var fields = ['description'];
+		req.body.geojson = JSON.parse(req.body.geojson);
+		var fields = ['description', 'geojson'];
 		for(var i = 0; i < fields.length; i++) {
 			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'});
 		}
-		UaModel.create({description: req.body.description, deleted: false, owner: req.user._id, private: true, location: {"type": "Point", "coordinates": [-3.4648987, 48.729296]}}).then(function(ua){
+		UaModel.create({description: req.body.description, deleted: false, owner: req.user._id, private: true, location: req.body.geojson}).then(function(ua){
 			UserModel.findOne({_id: req.user._id}).then(function(user){
 				user.uas.push(ua._id);
 				user.save();
@@ -39,7 +40,7 @@ var Ua = {
 		}
 		UaModel.find({
 			location: {
-				$geoIntersects: {
+				$geoWithin: {
 					/*$box: [
 						[mapBorder[0][0], mapBorder[0][1]],
 						[mapBorder[1][0], mapBorder[1][1]]
