@@ -9,7 +9,7 @@ var UserSchema = new Schema({
 	email: {type: String, required: true},
 	phoneNumber: Number,
 	deleted: {type: Boolean, required: true},
-	uas: [UASchema],
+	uas: [{type: Schema.Types.ObjectId, ref: 'Ua'}],
 	facebook_id: {type: String, required: false},
 },
 {

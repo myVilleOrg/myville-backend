@@ -12,10 +12,10 @@ var Ua = {
 			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'});
 		}
 		UaModel.create({description: req.body.description, deleted: false, owner: req.user._id, private: true, location: req.body.geojson}).then(function(ua){
-			UserModel.findOne({_id: req.user._id}).then(function(user){
-				user.uas.push(ua._id);
-				user.save();
+			UserModel.findOneAndUpdate({_id: req.user._id}, {$push: {uas: ua}}, {safe: true, new: true}).then(function(user){
 				return res.ok(ua);
+			}).catch(function(err){
+				return res.error({message: err});
 			});
 		}).catch(function(err){
 			return res.error({message: err});
