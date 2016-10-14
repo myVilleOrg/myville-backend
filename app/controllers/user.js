@@ -6,20 +6,25 @@ var express			= require('express'),
 	bcrypt			= require('bcrypt'),
 	FB				= require('fb'),
 	shortid			= require('shortid'),
+	request			= require('request-promise'),
 	slug			= require('slug');
 
 var salt = bcrypt.genSaltSync(10);
 var Tools = {
-	createAccount: function(req, res, next, fbUser){
+	createAccount: function(req, res, next, objUser){
 		return new Promise(function(resolve, reject){
 			bcrypt.genSalt(10, function (err, salt) {
 				if(err) return res.error({message: err.message, error: err});
 				var password = shortid.generate();
 				bcrypt.hash(password, salt, function (err, hash) {
 					if(err) return res.error({message: err.message, error: err});
-					var slugify = slug(fbUser.name);
-					var mail = fbUser.email ? fbUser.email : slugify + '@facebook.com';
-					UserModel.create({username: slugify, password: hash, email: mail, phonenumber: req.body.phonenumber, avatar: '', deleted: false, uas: [], facebook_id: fbUser.id}).then(function(user){
+					var slugify = slug(objUser.name);
+					var mail = objUser.email ? objUser.email : slugify + '@myVille.com';
+					var avat = objUser.avatar ? objUser.avatar : '';
+					var fuser = {username: slugify, password: hash, email: mail, phonenumber: req.body.phonenumber, avatar: avat, deleted: false, uas: []};
+					fuser.facebook_id = objUser.facebook_id ? objUser.facebook_id : '';
+					fuser.google_id = objUser.google_id ? objUser.google_id : '';
+					UserModel.create(fuser).then(function(user){
 						user.password = undefined; // remove password from return
 						var token = jwt.sign(user, secretConfig.tokenSalt, {
 							expiresIn: '1440m'
@@ -102,19 +107,73 @@ var User = {
 					user.password = undefined; // remove password for return object
 					return res.ok({token: token, user: user});
 				} else { //create user with fb id
+					var objUser = {
+						email: fbUser.email,
+						facebook_id: fbUser.id,
+						name: fbUser.name,
+					};
 					UserModel.findOneAndUpdate({email: fbUser.email}, {facebook_id: fbUser.id}).then(function(user){
 						if(!user) {
-							Tools.createAccount(req, res, next, fbUser).then(function(data){
+							Tools.createAccount(req, res, next, objUser).then(function(data){
 								return res.ok(data);
 							});
-						} else return res.ok(user);
+						} else {
+							var token = jwt.sign(user, secretConfig.tokenSalt, {
+								expiresIn: '1440m'
+							});
+							return res.ok({token: token, user: user});
+						}
 
 					}).catch(function(){
-						Tools.createAccount(req, res, next, fbUser).then(function(data){
+						Tools.createAccount(req, res, next, objUser).then(function(data){
 							return res.ok(data);
 						});
 					});
-
+				}
+			});
+		});
+	},
+	loginGoogle: function(req, res, next){
+		console.log(2);
+		if(!req.body.accessToken) return res.status(404).json({message: 'Access Token', error: 'Missing'});
+		console.log(3);
+		request.get({uri: 'https://www.googleapis.com/plus/v1/people/me', headers: {'Authorization': "Bearer "+req.body.accessToken }}).then(function(gUser){
+			gUser = JSON.parse(gUser);
+			console.log(gUser);
+			UserModel.findOne({google_id: gUser.id}).then(function(user){
+				if(user) { // we log user with our token
+					if(user.deleted === true) { // we reactivate user visibility
+						UserModel.update({_id: user._id}, {deleted: false}).then();
+					}
+					var token = jwt.sign(user, secretConfig.tokenSalt, {
+						expiresIn: '1440m'
+					});
+					user.password = undefined; // remove password for return object
+					return res.ok({token: token, user: user});
+				} else { //create user with fb id
+					var objUser = {
+						email: gUser.emails[0].value,
+						google_id: gUser.id,
+						name: gUser.displayName,
+						avatar: gUser.image.url,
+					};
+					UserModel.findOneAndUpdate({email: gUser.emails[0].value}, {google_id: gUser.id}).then(function(user){
+						console.log(objUser);
+						if(!user) {
+							Tools.createAccount(req, res, next, objUser).then(function(data){
+								return res.ok(data);
+							});
+						} else {
+							var token = jwt.sign(user, secretConfig.tokenSalt, {
+								expiresIn: '1440m'
+							});
+							return res.ok({token: token, user: user});
+						}
+					}).catch(function(){
+						Tools.createAccount(req, res, next, objUser).then(function(data){
+							return res.ok(data);
+						});
+					});
 				}
 			});
 		});
@@ -189,6 +248,7 @@ module.exports = function (app) {
 	app.post('/user/create',			User.create);
 	app.post('/user/login',				User.login);
 	app.post('/user/login/facebook',	User.loginFacebook);
+	app.post('/user/login/google',		User.loginGoogle);
 	app.put('/user/update',				User.update);
 	app.delete('/user/:id',				User.delete);
 	app.get('/user/:id',				User.get);
