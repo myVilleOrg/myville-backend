@@ -5,7 +5,6 @@ var express			= require('express'),
 	secretConfig	= require('../../config/config'),
 	bcrypt			= require('bcrypt'),
 	FB				= require('fb'),
-	googleapis 		= require('googleapis'),
 	shortid			= require('shortid'),
 	request			= require('request-promise'),
 	slug			= require('slug');
