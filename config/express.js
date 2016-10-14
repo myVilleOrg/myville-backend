@@ -2,6 +2,7 @@ var express				= require('express');
 var glob				= require('glob');
 var favicon				= require('serve-favicon');
 var logger				= require('morgan');
+var	secretConfig		= require('./config');
 var cookieParser		= require('cookie-parser');
 var bodyParser			= require('body-parser');
 var compress			= require('compression');
@@ -43,6 +44,12 @@ module.exports = function(app, config) {
 		if(token){
 			jwt.verify(token, config.tokenSalt, function(err, decoded) {
 				if(err) return res.status(500).json({message: err.message, error: err});
+				if(decoded.exp - Math.round(new Date()/1000) < 3600) {
+					var newToken = jwt.sign(decoded._doc, secretConfig.tokenSalt, {
+						expiresIn: '1440m'
+					});
+					res.set('x-access-token', newToken);
+				}
 				req.user = decoded._doc;
 				next();
 			});
