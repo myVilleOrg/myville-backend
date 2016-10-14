@@ -67,7 +67,6 @@ var Ua = {
 			path: 'owner',
 			select: '_id avatar deleted username facebook_id'
 		}).then(function(uas){
-			console.log(uas);
 			var uaGeoJSON = GeoJSON.parse(uas, {path: 'location'});
 			return res.ok(uaGeoJSON);
 		}).catch(function(err){

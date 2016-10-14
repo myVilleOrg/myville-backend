@@ -90,7 +90,6 @@ var User = {
 		FB.setAccessToken(req.body.accessToken);
 
 		FB.api('/me', {fields: 'email, name'}, function(fbUser){
-			console.log(fbUser);
 			if(!fbUser || fbUser.error){
 				var error = !fbUser ? 'error occurred' : fbUser.error;
 				return res.error({message: error});
@@ -134,12 +133,10 @@ var User = {
 		});
 	},
 	loginGoogle: function(req, res, next){
-		console.log(2);
 		if(!req.body.accessToken) return res.status(404).json({message: 'Access Token', error: 'Missing'});
-		console.log(3);
+
 		request.get({uri: 'https://www.googleapis.com/plus/v1/people/me', headers: {'Authorization': "Bearer "+req.body.accessToken }}).then(function(gUser){
 			gUser = JSON.parse(gUser);
-			console.log(gUser);
 			UserModel.findOne({google_id: gUser.id}).then(function(user){
 				if(user) { // we log user with our token
 					if(user.deleted === true) { // we reactivate user visibility
@@ -158,7 +155,6 @@ var User = {
 						avatar: gUser.image.url,
 					};
 					UserModel.findOneAndUpdate({email: gUser.emails[0].value}, {google_id: gUser.id}).then(function(user){
-						console.log(objUser);
 						if(!user) {
 							Tools.createAccount(req, res, next, objUser).then(function(data){
 								return res.ok(data);
