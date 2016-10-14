@@ -103,10 +103,12 @@ var User = {
 					return res.ok({token: token, user: user});
 				} else { //create user with fb id
 					UserModel.findOneAndUpdate({email: fbUser.email}, {facebook_id: fbUser.id}).then(function(user){
-						if(!user) Tools.createAccount(req, res, next, fbUser).then(function(data){
-							return res.ok(data);
-						});
-						return res.ok(user);
+						if(!user) {
+							Tools.createAccount(req, res, next, fbUser).then(function(data){
+								return res.ok(data);
+							});
+						} else return res.ok(user);
+
 					}).catch(function(){
 						Tools.createAccount(req, res, next, fbUser).then(function(data){
 							return res.ok(data);
