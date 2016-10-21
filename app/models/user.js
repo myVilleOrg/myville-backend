@@ -11,6 +11,7 @@ var UserSchema = new Schema({
 	deleted: {type: Boolean, required: true},
 	uas: [{type: Schema.Types.ObjectId, ref: 'Ua'}],
 	facebook_id: {type: String, required: false},
+	google_id: {type: String, required: false},
 },
 {
 	timestamps: true
