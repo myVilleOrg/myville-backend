@@ -36,6 +36,9 @@ var Tools = {
 				});
 			});
 		});
+	},
+	uploadImg: function(img){
+
 	}
 };
 var User = {
@@ -226,6 +229,22 @@ var User = {
 			return res.error({message: err.message, error: err});
 		});
 	},
+	updateAvatar: function(req, res, next){
+		UserModel.findOne({_id: req.user._id}).then(function(user){
+			if(req.body.avatar){
+				if(user.avatar != req.body.avatar){
+					UserModel.update({_id: user._id}, {avatar: req.body.avatar}).then(function(user){
+						return res.ok({message: 'OK'});
+					}).catch(function(err){
+						console.log("lil");
+						return res.error({message: err.message, error: err});
+					});
+				}else {
+					return res.error({message: 'Same avatar'});
+				}
+			}
+		});
+	},
 	delete: function(req, res, next){
 		UserModel.findOne({_id: req.user._id}).then(function(user){
 			if(req.params.id != req.user._id) return res.error({message: 'Forbidden action', err: 'Deny'});
@@ -246,6 +265,7 @@ module.exports = function (app) {
 	app.post('/user/login/facebook',	User.loginFacebook);
 	app.post('/user/login/google',		User.loginGoogle);
 	app.put('/user/update',				User.update);
+	app.put('/user/update/avatar',		User.updateAvatar);
 	app.delete('/user/:id',				User.delete);
 	app.get('/user/:id',				User.get);
 };
