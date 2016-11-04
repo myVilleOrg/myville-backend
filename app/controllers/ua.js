@@ -74,8 +74,9 @@ var Ua = {
 		});
 	},
 	mine: function(req, res, next){
-		UaModel.find({owner: req.user._id, deleted: false}).then(function(uas){
-			return res.ok(uas);
+		UaModel.find({owner: req.user._id, deleted: false}).populate({path: 'owner'}).then(function(uas){
+			var uaGeoJSON = GeoJSON.parse(uas, {path: 'location'});
+			return res.ok(uaGeoJSON);
 		});
 	},
 
