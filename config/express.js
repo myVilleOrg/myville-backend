@@ -48,7 +48,13 @@ module.exports = function(app, config) {
 		var token = req.body.token || req.headers['x-access-token'];
 		if(token){
 			jwt.verify(token, config.tokenSalt, function(err, decoded) {
-				if(err) return res.status(500).json({message: err.message, error: err});
+				if(err) return res.status(401).json({message: err.message, error: err});
+				if(decoded.exp - Math.round(new Date()/1000) < 43200) {
+					var newToken = jwt.sign(decoded._doc, config.tokenSalt, {
+						expiresIn: '1440m'
+					});
+					res.setHeader('x-access-token', newToken);
+				}
 				req.user = decoded._doc;
 				next();
 			});
