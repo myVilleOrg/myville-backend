@@ -7,11 +7,11 @@ var express 		= require('express'),
 var Ua = {
 	create: function(req, res, next){
 		req.body.geojson = JSON.parse(req.body.geojson);
-		var fields = ['description', 'geojson'];
+		var fields = ['description', 'geojson', 'title'];
 		for(var i = 0; i < fields.length; i++) {
 			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'});
 		}
-		UaModel.create({description: req.body.description, deleted: false, owner: req.user._id, private: true, location: req.body.geojson}).then(function(ua){
+		UaModel.create({title: req.body.title, description: req.body.description, deleted: false, owner: req.user._id, private: true, location: req.body.geojson}).then(function(ua){
 			UserModel.findOneAndUpdate({_id: req.user._id}, {$push: {uas: ua}}, {safe: true, new: true}).then(function(user){
 				return res.ok(ua);
 			}).catch(function(err){

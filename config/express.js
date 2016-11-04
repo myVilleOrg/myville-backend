@@ -20,6 +20,7 @@ module.exports = function(app, config) {
 	app.use(bodyParser.urlencoded({
 		extended: true
 	}));
+
 	app.use(cookieParser());
 	app.use(compress());
 	app.use(express.static(config.root + '/public'));
@@ -34,8 +35,13 @@ module.exports = function(app, config) {
 		next();
 	});
 	app.use(cors());
-
 	app.all('*', function(req, res, next){
+		var regexID = /^[a-f\d]{24}$/i;
+
+		if(req.path.slice(0, 6) === '/user/' && regexID.test(req.path.slice(6))){ // GET /user/:id
+			return next();
+		}
+
 		for(var i = 0; i < config.nosecurePath.length; i++) {
 			if(req.path === config.nosecurePath[i]) return next();
 		}
