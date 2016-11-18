@@ -7,8 +7,18 @@ var express			= require('express'),
 	FB				= require('fb'),
 	shortid			= require('shortid'),
 	request			= require('request-promise'),
+	multer			= require('multer'),
 	slug			= require('slug');
 
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, '../upload/')
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.fieldname + '-' + Date.now())
+  }
+});
+var upload = multer({storage: storage});
 var salt = bcrypt.genSaltSync(10);
 var Tools = {
 	createAccount: function(req, res, next, objUser){
@@ -36,12 +46,9 @@ var Tools = {
 				});
 			});
 		});
-	},
-	uploadImg: function(img){
-
 	}
-};
-var User = {
+}
+;var User = {
 	create: function(req, res, next){
 		var fields = ['username', 'email', 'password', 'phonenumber'];
 		for(var i = 0; i < fields.length; i++) {
@@ -265,7 +272,7 @@ module.exports = function (app) {
 	app.post('/user/login/facebook',	User.loginFacebook);
 	app.post('/user/login/google',		User.loginGoogle);
 	app.put('/user/update',				User.update);
-	app.put('/user/update/avatar',		User.updateAvatar);
+	app.post('/user/update/avatar', upload.single('avatar'),		User.updateAvatar);
 	app.delete('/user/:id',				User.delete);
 	app.get('/user/:id',				User.get);
 };
