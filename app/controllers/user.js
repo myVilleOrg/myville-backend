@@ -185,7 +185,7 @@ var Tools = {
 		});
 	},
 	get: function(req, res, next){
-		UserModel.findOne({_id: req.params.id, deleted: false}).select('username _id createdAt avatar').then(function(user){
+		UserModel.findOne({_id: req.params.userId, deleted: false}).select('username _id createdAt avatar').then(function(user){
 			if(!user) return res.error({message: 'User not found', error: 'Not found'});
 
 			return res.status(200).json(user);
@@ -274,5 +274,5 @@ module.exports = function (app) {
 	app.put('/user/update',				User.update);
 	app.post('/user/update/avatar', upload.single('avatar'),		User.updateAvatar);
 	app.delete('/user/:id',				User.delete);
-	app.get('/user/:id',				User.get);
+	app.get('/user/:userId',			User.get);
 };

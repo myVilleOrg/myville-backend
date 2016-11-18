@@ -18,6 +18,7 @@ var randomCoords = function() {
 }
 var data_uas = function(i){
 	return {
+		title: 'Awesome Random Title',
 		description: 'RANDOM DESCRIPTION ' + i,
 		geojson: JSON.stringify({"type": "Point", "coordinates": randomCoords()})
 	};

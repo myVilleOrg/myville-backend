@@ -13,6 +13,7 @@ var UaSchema = new Schema({
 		},
 		coordinates: [Schema.Types.Mixed]
 	},
+	title: {type: String, required: true}
 },{
     timestamps: true
 });
