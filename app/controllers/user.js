@@ -7,8 +7,20 @@ var express			= require('express'),
 	FB				= require('fb'),
 	shortid			= require('shortid'),
 	request			= require('request-promise'),
+	multer			= require('multer'),
 	slug			= require('slug');
 
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'app/upload/')
+
+  },
+  filename: function (req, file, cb) {
+    cb(null, (Math.random().toString(36)+'00000000000000000').slice(2, 10) + Date.now() + file.originalname);
+  }
+});
+
+var upload = multer({storage: storage});
 var salt = bcrypt.genSaltSync(10);
 var Tools = {
 	createAccount: function(req, res, next, objUser){
@@ -38,6 +50,7 @@ var Tools = {
 		});
 	}
 };
+
 var User = {
 	create: function(req, res, next){
 		var fields = ['username', 'email', 'password', 'phonenumber'];
@@ -192,7 +205,7 @@ var User = {
 					}).catch(function(err){
 						return res.error({message: err.message, error: err});
 					});
-				} else return res.error({message: 'Same username'});
+				}
 			}
 			if(req.body.password && req.body.oldPassword && !req.body.username){
 				if(bcrypt.compareSync(req.body.oldPassword, user.password)){
@@ -226,6 +239,13 @@ var User = {
 			return res.error({message: err.message, error: err});
 		});
 	},
+	updateAvatar: function(req, res, next){
+		UserModel.findOneAndUpdate({_id: req.user._id}, {avatar: req.files[0].filename}, {new: true}).then(function(user){
+			return res.ok(user);
+		}).catch(function(err){
+			return res.error({message: 'user not found'});
+		});
+	},
 	delete: function(req, res, next){
 		UserModel.findOne({_id: req.user._id}).then(function(user){
 			if(req.params.id != req.user._id) return res.error({message: 'Forbidden action', err: 'Deny'});
@@ -246,6 +266,7 @@ module.exports = function (app) {
 	app.post('/user/login/facebook',	User.loginFacebook);
 	app.post('/user/login/google',		User.loginGoogle);
 	app.put('/user/update',				User.update);
+	app.post('/user/update/avatar', 	upload.any(),		User.updateAvatar);
 	app.delete('/user/:id',				User.delete);
 	app.get('/user/:userId',			User.get);
 };
