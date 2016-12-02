@@ -12,14 +12,14 @@ var express			= require('express'),
 
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
-  	console.log("upload");
     cb(null, 'app/upload/')
+
   },
   filename: function (req, file, cb) {
-  	console.log("name");
-    cb(null, file.originalname)
+    cb(null, (Math.random().toString(36)+'00000000000000000').slice(2, 10) + Date.now() + file.originalname);
   }
 });
+
 var upload = multer({storage: storage});
 var salt = bcrypt.genSaltSync(10);
 var Tools = {
@@ -49,8 +49,9 @@ var Tools = {
 			});
 		});
 	}
-}
-;var User = {
+};
+
+var User = {
 	create: function(req, res, next){
 		var fields = ['username', 'email', 'password', 'phonenumber'];
 		for(var i = 0; i < fields.length; i++) {
@@ -239,9 +240,7 @@ var Tools = {
 		});
 	},
 	updateAvatar: function(req, res, next){
-		console.log(req.files);
 		UserModel.findOneAndUpdate({_id: req.user._id}, {avatar: req.files[0].filename}, {new: true}).then(function(user){
-			console.log(user);
 			return res.ok(user);
 		}).catch(function(err){
 			return res.error({message: 'user not found'});
