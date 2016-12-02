@@ -23,7 +23,7 @@ module.exports = function(app, config) {
 
 	app.use(cookieParser());
 	app.use(compress());
-	app.use(express.static(config.root + '/public'));
+	app.use('/static', express.static(config.root + '/app/upload'));
 	app.use(methodOverride());
 	app.use(function(req, res, next){
 		res.error = function(data){
@@ -39,6 +39,10 @@ module.exports = function(app, config) {
 		var regexID = /^[a-f\d]{24}$/i;
 
 		if(req.path.slice(0, 6) === '/user/' && regexID.test(req.path.slice(6))){ // GET /user/:id
+			return next();
+		}
+
+		if(req.path.slice(0, 8) === '/static/'){ // GET /static/
 			return next();
 		}
 
