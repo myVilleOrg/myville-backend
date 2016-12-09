@@ -13,11 +13,13 @@ var express			= require('express'),
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'app/upload/')
+
   },
   filename: function (req, file, cb) {
-    cb(null, file.originalname)
+    cb(null, (Math.random().toString(36)+'00000000000000000').slice(2, 10) + Date.now() + file.originalname);
   }
 });
+
 var upload = multer({storage: storage});
 var salt = bcrypt.genSaltSync(10);
 var Tools = {
@@ -46,8 +48,9 @@ var Tools = {
 				});
 			});
 		});
-	},
+	}
 };
+
 var User = {
 	create: function(req, res, next){
 		var fields = ['username', 'email', 'password', 'phonenumber'];

@@ -104,26 +104,20 @@ var Ua = {
 			return res.ok(uaGeoJSON);
 		});
 	},
-
-	publish: function(req, res, next){
-		UaModel.findOne({_id: req.params.id}).then(function(ua){
+	update: function(req, res, next){
+		var fields = ['description', 'title', 'publish'];
+		for(var i = 0; i < fields.length; i++) {
+			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'});
+		}
+		req.body.publish = (req.body.publish === 'true'); // conversion booleene
+		console.log(req.body.publish)
+		UaModel.findOneAndUpdate({_id: req.params.id, deleted: false}, {description: req.body.description, title: req.body.title, private: req.body.publish}, {new: true}).then(function(ua){
 			if(!ua || ua.owner != req.user._id) return res.error({message: 'Ua does not exist / Ua is not yours', error: 'Not found / Not yours'});
-			if(ua.private){
-				UaModel.update({_id: ua.id}, {private: false}).then(function(data){
-					return res.ok({message: 'OK'});
-				}).catch(function(err){
-					return res.error({message: err.message, error: err});
-				});
-			} else{
-				UaModel.update({_id: ua.id}, {private: true}).then(function(data){
-					return res.ok({message: 'OK'});
-				}).catch(function(err){
-					return res.error({message: err.message, error: err});
-				});
-			}
+			return res.json(ua);
+		}).catch(function(err){
+			return res.error({message: 'Ua does not exist / Ua is not yours', error: 'Not found / Not yours'});
 		});
 	},
-
 	delete: function(req, res, next){
 		UaModel.findOne({_id: req.params.id}).then(function(ua){
 			if(!ua || ua.owner != req.user._id) return res.error({message: 'Ua does not exist / Ua is not yours', error: 'Not found / Not yours'});
@@ -141,7 +135,7 @@ module.exports = function (app) {
 	app.post('/ua/create', 		Ua.create);
 	app.get('/ua/get/geo', 		Ua.getGeo);
 	app.get('/ua/get/mine',	    Ua.mine);
-	app.put('/ua/publish/:id',	Ua.publish);
+	app.put('/ua/:id',		Ua.update);
 	app.get('/ua/:id',	    	Ua.get);
 	app.post('/ua/favor',		Ua.favor);
 	app.delete('/ua/:id',		Ua.delete);
