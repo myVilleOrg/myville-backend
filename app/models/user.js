@@ -12,6 +12,8 @@ var UserSchema = new Schema({
 	uas: [{type: Schema.Types.ObjectId, ref: 'Ua'}],
 	facebook_id: {type: String, required: false},
 	google_id: {type: String, required: false},
+	resetPasswordToken: String,
+	resetPasswordExpires: Date
 },
 {
 	timestamps: true

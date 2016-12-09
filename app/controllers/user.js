@@ -8,7 +8,11 @@ var express			= require('express'),
 	shortid			= require('shortid'),
 	request			= require('request-promise'),
 	multer			= require('multer'),
-	slug			= require('slug');
+	slug			= require('slug'),
+	nodemailer		= require('nodemailer'),
+	smtpTransport	= require('nodemailer-smtp-transport');
+
+var transporter = nodemailer.createTransport(smtpTransport(secretConfig.email));
 
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -27,7 +31,7 @@ var Tools = {
 		return new Promise(function(resolve, reject){
 			bcrypt.genSalt(10, function (err, salt) {
 				if(err) return res.error({message: err.message, error: err});
-				var password = shortid.generate();
+				var password = objUser.password ? objUser.password : shortid.generate();
 				bcrypt.hash(password, salt, function (err, hash) {
 					if(err) return res.error({message: err.message, error: err});
 					var slugify = slug(objUser.name);
@@ -41,11 +45,24 @@ var Tools = {
 						var token = jwt.sign(user, secretConfig.tokenSalt, {
 							expiresIn: '1440m'
 						});
-						resolve({token: token, user: user});
+						Tools.sendMail(mail, 'Inscription sur myVille', 'Bonjour, \n Vous êtes bien inscrit sur myVille !').then();						Tools.sendMail(mail, 'Inscription sur myVille', 'Bonjour, \n Vous êtes bien inscrit sur myVille !').then();						Tools.sendMail(mail, 'Inscription sur myVille', 'Bonjour, \n Vous êtes bien inscrit sur myVille !').then();						resolve({token: token, user: user});
 					}).catch(function(err){
 						reject(err);
 					});
 				});
+			});
+		});
+	},
+	sendMail: function(to , subject, text){
+		return new Promise(function(resolve, reject){
+			transporter.sendMail({
+				from: 'MyVille',
+				to: to,
+				subject: subject,
+				text: text
+			}, function(error, response) {
+				var data = {error, response};
+				resolve(data);
 			});
 		});
 	}
@@ -59,20 +76,8 @@ var User = {
 		}
 		UserModel.findOne({email: req.body.email}, function(email, err){
 			if(email) return res.error({message: 'Email used', error: 'Already'});
-			bcrypt.genSalt(10, function (err, salt) {
-				if(err) return res.error({message: err.message, error: err});
-
-				bcrypt.hash(req.body.password, salt, function (err, hash) {
-					if(err) return res.error({message: err.message, error: err});
-
-					UserModel.create({username: req.body.username, password: hash, email: req.body.email, phonenumber: req.body.phonenumber, avatar: '', deleted: false, uas: []}).then(function(user){
-						user.password = undefined; // remove password from return
-						var token = jwt.sign(user, secretConfig.tokenSalt, {
-							expiresIn: '1440m'
-						});
-						return res.ok({token: token, user: user});
-					}).catch(function(error){console.log(error);});
-				});
+			Tools.createAccount(req, res, next, {name: req.body.username, email: req.body.email, password: req.body.password}).then(function(user){
+				return res.ok(user);
 			});
 		});
 	},
@@ -257,7 +262,41 @@ var User = {
 				return res.error({message: err.message, error: err});
 			});
 		});
-	}
+	},
+	reset: function(req, res, next){
+		if(!req.body.password) return res.error({message: 'password missing.'});
+		if(!req.body.tokenReset) return res.error({message: 'Token reset missing.'});
+		UserModel.findOne({resetPasswordToken: req.body.tokenReset, resetPasswordExpires: {$gt: Date.now()}}).then(function(user){
+			if(!user) return res.error({message: 'Bad token or expires'});
+			bcrypt.hash(req.body.password, salt, function (err, hash) {
+				user.password = hash;
+				user.resetPasswordToken = '';
+				user.resetPasswordExpires = null;
+				user.save(function(err){
+					if(err) return res.error({message: err});
+					return res.ok({message: 'OK'});
+				});
+			});
+		}).catch(function(err){
+			return res.error({message: err.message, error: err});
+		});
+	},
+	forgetPassword: function(req, res, next){
+		if(!req.body.email) return res.error({message:'Email missing.'});
+		UserModel.findOne({email: req.body.email}).then(function(user){
+			user.resetPasswordToken = shortid.generate();
+        	user.resetPasswordExpires = Date.now() + 3600000;
+        	user.save(function(){
+				Tools.sendMail(req.body.email, 'Mot de passe oublié sur myVille', 'Vous recevez ce mail car vous avez demandé une demande de réinitialisation de votre mot de passe.\n\n' +
+			      'Merci de cliquez sur le lien pour commencer la procédure :\n\n' +
+			      'http://' + req.headers.host + '/reset/' + user.resetPasswordToken + '\n\n' +
+			      'Si vous n\'avez pas demandé cette réinitialisation, ignorer ce mail.\n').then();
+				return res.ok({message: 'OK'});
+        	});
+		}, function(err){
+			return res.error({message: err.message, error: err});
+		});
+	},
 };
 
 module.exports = function (app) {
@@ -266,6 +305,8 @@ module.exports = function (app) {
 	app.post('/user/login/facebook',	User.loginFacebook);
 	app.post('/user/login/google',		User.loginGoogle);
 	app.put('/user/update',				User.update);
+	app.post('/user/forgetPassword',	User.forgetPassword);
+	app.post('/user/reset',				User.reset);
 	app.post('/user/update/avatar', 	upload.any(),		User.updateAvatar);
 	app.delete('/user/:id',				User.delete);
 	app.get('/user/:userId',			User.get);
