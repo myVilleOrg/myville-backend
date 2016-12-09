@@ -21,7 +21,32 @@ var Ua = {
 			return res.error({message: err});
 		});
 	},
-
+	favor: function(req, res, next){
+		UaModel.findOne({_id: req.body.ua}).then(function(ua){
+			UserModel.findOne({_id: req.user._id}).then(function(user){
+				if(!ua ||(ua.private && ua.owner != req.user._id)){
+					return res.error({message: "ua not found"});
+				}else{
+					var pos = user.favoris.indexOf(ua._id);
+					var tmpFavoris = user.favoris;
+					if(pos == -1){
+						tmpFavoris.push(ua);
+					}else{
+						tmpFavoris.splice(pos,1);
+					}
+					UserModel.findOneAndUpdate({_id: req.user._id}, {favoris: tmpFavoris}, {new: true}).then(function(user){
+						return res.ok(user);
+					}).catch(function(err){
+						return res.error({message: err.message, error: err});
+					});
+				}
+			}).catch(function(err){
+				return res.error({message: err.message, error: err});
+			});
+		}).catch(function(err){
+			return res.error({message: err.message, error: err});
+		});
+	},
 	get: function(req, res, next){
 		UaModel.findOne({_id: req.params.id, deleted: false}).then(function(ua){
 			if(!ua ||(ua.private && ua.owner != req.user._id)) return res.error({message: 'Ua does not exist', error: 'Not found'});
@@ -114,9 +139,10 @@ var Ua = {
 
 module.exports = function (app) {
 	app.post('/ua/create', 		Ua.create);
-	app.get('/ua/get/geo', 	Ua.getGeo);
+	app.get('/ua/get/geo', 		Ua.getGeo);
 	app.get('/ua/get/mine',	    Ua.mine);
 	app.put('/ua/publish/:id',	Ua.publish);
 	app.get('/ua/:id',	    	Ua.get);
+	app.post('/ua/favor',		Ua.favor);
 	app.delete('/ua/:id',		Ua.delete);
 };

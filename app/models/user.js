@@ -10,6 +10,7 @@ var UserSchema = new Schema({
 	phoneNumber: Number,
 	deleted: {type: Boolean, required: true},
 	uas: [{type: Schema.Types.ObjectId, ref: 'Ua'}],
+	favoris: [{type: Schema.Types.ObjectId, ref: 'Ua'}],
 	facebook_id: {type: String, required: false},
 	google_id: {type: String, required: false},
 },

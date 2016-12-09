@@ -12,11 +12,9 @@ var express			= require('express'),
 
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
-  	console.log("upload");
     cb(null, 'app/upload/')
   },
   filename: function (req, file, cb) {
-  	console.log("name");
     cb(null, file.originalname)
   }
 });
@@ -48,9 +46,9 @@ var Tools = {
 				});
 			});
 		});
-	}
-}
-;var User = {
+	},
+};
+var User = {
 	create: function(req, res, next){
 		var fields = ['username', 'email', 'password', 'phonenumber'];
 		for(var i = 0; i < fields.length; i++) {
@@ -189,7 +187,6 @@ var Tools = {
 	get: function(req, res, next){
 		UserModel.findOne({_id: req.params.userId, deleted: false}).select('username _id createdAt avatar').then(function(user){
 			if(!user) return res.error({message: 'User not found', error: 'Not found'});
-
 			return res.status(200).json(user);
 		}).catch(function(err){
 			return res.error({message: 'User not found', error: 'Not found'});
@@ -239,9 +236,7 @@ var Tools = {
 		});
 	},
 	updateAvatar: function(req, res, next){
-		console.log(req.files);
 		UserModel.findOneAndUpdate({_id: req.user._id}, {avatar: req.files[0].filename}, {new: true}).then(function(user){
-			console.log(user);
 			return res.ok(user);
 		}).catch(function(err){
 			return res.error({message: 'user not found'});
