@@ -195,7 +195,6 @@ var User = {
 	get: function(req, res, next){
 		UserModel.findOne({_id: req.params.userId, deleted: false}).select('username _id createdAt avatar').then(function(user){
 			if(!user) return res.error({message: 'User not found', error: 'Not found'});
-
 			return res.status(200).json(user);
 		}).catch(function(err){
 			return res.error({message: 'User not found', error: 'Not found'});
