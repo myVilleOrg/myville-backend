@@ -15,10 +15,7 @@ var express			= require('express'),
 var transporter = nodemailer.createTransport(smtpTransport(secretConfig.email));
 
 var storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'app/upload/')
-
-  },
+  destination: 'app/uploads',
   filename: function (req, file, cb) {
     cb(null, (Math.random().toString(36)+'00000000000000000').slice(2, 10) + Date.now() + file.originalname);
   }
