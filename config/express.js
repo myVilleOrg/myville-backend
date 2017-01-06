@@ -42,12 +42,26 @@ module.exports = function(app, config) {
 			return next();
 		}
 
-		if(req.path.slice(0, 8) === '/static/'){ // GET /static/
+		if(req.path.slice(0, 4) === '/ua/' && regexID.test(req.path.slice(4))){ // GET /ua/:id
 			return next();
 		}
 
+		if(req.path.slice(0, 8) === '/static/'){ // GET /static/
+			return next();
+		}
+		var inSecurePath = false;
 		for(var i = 0; i < config.nosecurePath.length; i++) {
-			if(req.path === config.nosecurePath[i]) return next();
+			if(req.path === config.nosecurePath[i]){
+				inSecurePath = true;
+				var token = req.body.token || req.headers['x-access-token'];
+				if(token){
+					jwt.verify(token, config.tokenSalt, function(err, decoded) {
+						if(err) return res.status(401).json({message: err.message, error: err});
+						req.user = decoded._doc;
+						next();
+					});
+				} else next()
+			}
 		}
 		var token = req.body.token || req.headers['x-access-token'];
 		if(token){
@@ -60,9 +74,13 @@ module.exports = function(app, config) {
 					res.setHeader('x-access-token', newToken);
 				}
 				req.user = decoded._doc;
-				next();
+				if(!inSecurePath) next();
 			});
-		} else return res.status(500).json({message: 'Where is your token ?', error: 'Token Missing'});
+		} else{
+			if(!inSecurePath) {
+				return res.status(500).json({message: 'Where is your token ?', error: 'Token Missing'});
+			}
+		}
 	});
 
 	// Load controllers

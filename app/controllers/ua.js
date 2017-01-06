@@ -89,7 +89,17 @@ var Ua = {
 			path: 'owner',
 			select: '_id avatar deleted username facebook_id'
 		}).then(function(uas){
-			var uaGeoJSON = GeoJSON.parse(uas, {path: 'location'});
+			var parsedUas = [];
+			for(var i = 0; i < uas.length; i++){
+				if(req.user && uas[i].owner._id == req.user._id) {
+					parsedUas.push(uas[i]);
+				}
+
+				if(!uas[i].private){
+					parsedUas.push(uas[i]);
+				}
+			}
+			var uaGeoJSON = GeoJSON.parse(parsedUas, {path: 'location'});
 			return res.ok(uaGeoJSON);
 		}).catch(function(err){
 			return res.error({message: err});
@@ -107,7 +117,7 @@ var Ua = {
 			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'});
 		}
 		req.body.publish = (req.body.publish === 'true'); // conversion booleene
-		console.log(req.body.publish)
+
 		UaModel.findOneAndUpdate({_id: req.params.id, deleted: false}, {description: req.body.description, title: req.body.title, private: req.body.publish}, {new: true}).then(function(ua){
 			if(!ua || ua.owner != req.user._id) return res.error({message: 'Ua does not exist / Ua is not yours', error: 'Not found / Not yours'});
 			return res.json(ua);

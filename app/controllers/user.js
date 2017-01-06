@@ -15,13 +15,12 @@ var express			= require('express'),
 var transporter = nodemailer.createTransport(smtpTransport(secretConfig.email));
 
 var storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'app/upload/')
-
-  },
-  filename: function (req, file, cb) {
-    cb(null, (Math.random().toString(36)+'00000000000000000').slice(2, 10) + Date.now() + file.originalname);
-  }
+	destination: function (req, file, cb) {
+		cb(null, 'app/upload/')
+	},
+	filename: function (req, file, cb) {
+		cb(null, (Math.random().toString(36)+'00000000000000000').slice(2, 10) + Date.now() + file.originalname);
+	}
 });
 
 var upload = multer({storage: storage});
@@ -288,7 +287,7 @@ var User = {
         	user.save(function(){
 				Tools.sendMail(req.body.email, 'Mot de passe oublié sur myVille', 'Vous recevez ce mail car vous avez demandé une demande de réinitialisation de votre mot de passe.\n\n' +
 			      'Merci de cliquez sur le lien pour commencer la procédure :\n\n' +
-			      'http://' + req.headers.host + '/reset/' + user.resetPasswordToken + '\n\n' +
+			      'http://' + req.headers.host + '/#/reset/' + user.resetPasswordToken + '\n\n' +
 			      'Si vous n\'avez pas demandé cette réinitialisation, ignorer ce mail.\n').then();
 				return res.ok({message: 'OK'});
         	});
