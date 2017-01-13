@@ -1,7 +1,9 @@
+
 var express 		= require('express'),
 	mongoose 		= require('mongoose'),
 	UaModel 		= mongoose.model('Ua'),
 	UserModel 		= mongoose.model('User'),
+	VoteModel		= mongoose.model('Vote'),
 	GeoJSON 		= require('mongodb-geojson-normalize');
 
 var Ua = {
@@ -101,13 +103,62 @@ var Ua = {
 			return res.ok(uaGeoJSON);
 		});
 	},
+	vote: function(req, res, next){
+		VoteModel.findOne({ua: req.params.id, user: req.user._id}).then(function(vote){
+			if(vote){
+				return res.error({message : "you have already voted for this ua"});
+			}
+			var fvote = {
+				ua: req.params.id,
+				user: req.user._id,
+				vote: req.body.vote 
+			};
+			VoteModel.create(fvote).then(function(finvote){
+				UaModel.findOne({_id: req.params.id}).then(function(ua){
+					if(!ua ||(ua.private && ua.owner != req.user._id))	return res.error({message: "ua not found"});
+					UaModel.findOneAndUpdate({_id: req.params.id}, {$push: {vote: finvote._id}}, {safe: true, new: true}).then(function(ua){
+						return res.ok(ua);
+					}).catch(function(err){
+						VoteModel.findOneAndRemove({ua: req.params.id, user: req.user._id}).then(function(){
+							return res.error(err);
+						}).catch(function(err){
+							return res.error(err);
+						});
+					});
+				}).catch(function(err){
+					return res.error(err);
+				});
+			}).catch(function(err){
+				return res.error(err);
+			});
+		});
+	},
+	delvote: function(req, res, next){
+		VoteModel.findOneAndRemove({ua: req.params.id, user: req.user._id}).then(function(vote){
+			UaModel.findOne({_id: req.params.id}).then(function(ua){
+				var votes = ua.vote;
+				var pos = votes.indexOf(vote._id);
+				if(pos != -1){
+					votes.splice(pos,1);
+				}
+				UaModel.findOneAndUpdate({_id: req.params.id}, {vote: votes}, {new: true}).then(function(ua){
+					return res.ok({obj: ua, message: "vote deleted"});
+				}).catch(function(err){
+					return res.error(err);
+				})
+			}).catch(function(err){
+				return res.error(err);
+			});
+		}).catch(function(err){
+			return res.error(err);
+		});
+	},
 	update: function(req, res, next){
 		var fields = ['description', 'title', 'publish'];
 		for(var i = 0; i < fields.length; i++) {
 			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'});
 		}
 		req.body.publish = (req.body.publish === 'true'); // conversion booleene
-		console.log(req.body.publish)
 		UaModel.findOneAndUpdate({_id: req.params.id, deleted: false}, {description: req.body.description, title: req.body.title, private: req.body.publish}, {new: true}).then(function(ua){
 			if(!ua || ua.owner != req.user._id) return res.error({message: 'Ua does not exist / Ua is not yours', error: 'Not found / Not yours'});
 			return res.json(ua);
@@ -136,4 +187,6 @@ module.exports = function (app) {
 	app.get('/ua/:id',	    	Ua.get);
 	app.post('/ua/favor',		Ua.favor);
 	app.delete('/ua/:id',		Ua.delete);
+	app.post('/ua/vote/:id',	Ua.vote);
+	app.delete('/ua/vote/:id',	Ua.delvote);
 };
