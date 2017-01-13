@@ -125,6 +125,16 @@ var Ua = {
 			return res.ok(uaGeoJSON);
 		});
 	},
+	favorite: function(req, res, next){
+		var promises = [];
+		for(var i = 0; i < req.user.favoris.length; i++){
+			promises.push(UaModel.find({_id: req.user.favoris[i], deleted: false}).populate({path: 'owner'}))
+		}
+		Promise.all(promises).then(function(uas){
+			var uaGeoJSON = GeoJSON.parse(uas, {path: 'location'});
+			return res.ok(uaGeoJSON);
+		});
+	},
 	update: function(req, res, next){
 		var fields = ['description', 'title', 'publish'];
 		for(var i = 0; i < fields.length; i++) {
@@ -156,6 +166,7 @@ module.exports = function (app) {
 	app.post('/ua/create', 		Ua.create);
 	app.get('/ua/get/geo', 		Ua.getGeo);
 	app.get('/ua/get/mine',	    Ua.mine);
+	app.get('/ua/get/favorite',	    Ua.mine);
 	app.put('/ua/:id',			Ua.update);
 	app.get('/ua/:id',	    	Ua.get);
 	app.post('/ua/favor',		Ua.favor);
