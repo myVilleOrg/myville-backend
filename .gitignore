@@ -2,5 +2,5 @@ node_modules/
 public/components
 .sass-cache
 npm-debug.log
-app/upload/*
+app/upload/
 config/config.js
