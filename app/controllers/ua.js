@@ -107,7 +107,6 @@ var Ua = {
 	},
 	get: function(req, res, next){
 		UaModel.findOne({_id: req.params.id, deleted: false}).then(function(ua){
-			console.log(req.user)
 			if(!ua ||(ua.private && ua.owner != req.user._id)) return res.error({message: 'Ua does not exist', error: 'Not found'});
 			return res.ok(ua);
 		}).catch(function(err){
@@ -153,18 +152,18 @@ var Ua = {
 			path: 'owner',
 			select: '_id avatar deleted username facebook_id'
 		}).then(function(uas){
-
 			var parsedUas = [];
 			for(var i = 0; i < uas.length; i++){
-				if(req.user && uas[i].owner._id == req.user._id) {
-					parsedUas.push(uas[i]);
-				}
+				if(!uas[i].deleted){
+					if(req.user && uas[i].owner._id == req.user._id) {
+						parsedUas.push(uas[i]);
+					}
 
-				if(!uas[i].private){
-					parsedUas.push(uas[i]);
+					if(!uas[i].private){
+						parsedUas.push(uas[i]);
+					}
 				}
 			}
-
 			var uaGeoJSON = GeoJSON.parse(parsedUas, {path: 'location'});
 			return res.ok(uaGeoJSON);
 		}).catch(function(err){
@@ -204,13 +203,25 @@ var Ua = {
 		});
 	},
 	favorite: function(req, res, next){
-		var promises = [];
-		for(var i = 0; i < req.user.favoris.length; i++){
-			promises.push(UaModel.find({_id: req.user.favoris[i], deleted: false}).populate({path: 'owner'}))
-		}
-		Promise.all(promises).then(function(uas){
-			var uaGeoJSON = GeoJSON.parse(uas, {path: 'location'});
-			return res.ok(uaGeoJSON);
+		UserModel.findOne({_id: req.user._id, deleted: false}).select('_id avatar deleted favoris username facebook_id').populate({path: 'favoris'}).then(function(user){
+
+			var promises = [];
+			for(var i = 0; i < user.favoris.length; i++){
+				promises.push(UserModel.findOne({_id: user.favoris[i].owner}).select('_id avatar deleted username facebook_id'));
+			}
+			Promise.all(promises).then(function(users){
+				var parsedUa = []
+				for(var i = 0; i < users.length; i++){
+					user.favoris[i].owner = users[i];
+					if(!user.favoris[i].deleted){
+						parsedUa.push(user.favoris[i]);
+					}
+				}
+				var uaGeoJSON = GeoJSON.parse(parsedUa, {path: 'location'});
+				return res.ok(uaGeoJSON);
+			});
+		}).catch(function(err){
+			console.log(err)
 		});
 	},
 	update: function(req, res, next){
@@ -243,7 +254,7 @@ module.exports = function (app) {
 	app.post('/ua/create', 		Ua.create);
 	app.get('/ua/get/geo', 		Ua.getGeo);
 	app.get('/ua/get/mine',	    Ua.mine);
-	app.get('/ua/get/favorite',	Ua.mine);
+	app.get('/ua/get/favorite', Ua.favorite);
 	app.put('/ua/:id',			Ua.update);
 	app.get('/ua/:id',	    	Ua.get);
 	app.post('/ua/favor',		Ua.favor);
