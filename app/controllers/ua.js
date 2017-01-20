@@ -6,6 +6,57 @@ var express 		= require('express'),
 	VoteModel		= mongoose.model('Vote'),
 	GeoJSON 		= require('mongodb-geojson-normalize');
 
+var Tools = {
+	delvote: function(req, res, next){
+		return new Promise(function(resolve, reject){
+			VoteModel.findOneAndRemove({ua: req.params.id, user: req.user._id}).then(function(vote){
+				UaModel.findOne({_id: req.params.id}).then(function(ua){
+					var votes = ua.vote;
+					var pos = votes.indexOf(vote._id);
+					if(pos != -1){
+						votes.splice(pos,1);
+					}
+					UaModel.findOneAndUpdate({_id: req.params.id}, {vote: votes}, {new: true}).then(function(ua){
+						resolve({obj: ua, message: "vote deleted"});
+					}).catch(function(err){
+						reject(err);
+					})
+				}).catch(function(err){
+					reject(err);
+				});
+			}).catch(function(err){
+				reject(err);
+			});
+		});
+	},
+	vote: function(req, res, next){
+		return new Promise(function(resolve, reject){
+			var fvote = {
+				ua: req.params.id,
+				user: req.user._id,
+				vote: req.body.vote 
+			};
+			VoteModel.create(fvote).then(function(finvote){
+				UaModel.findOne({_id: req.params.id}).then(function(ua){
+					if(!ua ||(ua.private && ua.owner != req.user._id))	return res.error({message: "ua not found"});
+					UaModel.findOneAndUpdate({_id: req.params.id}, {$push: {vote: finvote._id}}, {safe: true, new: true}).then(function(ua){
+						resolve(ua);
+					}).catch(function(err){
+						VoteModel.findOneAndRemove({ua: req.params.id, user: req.user._id}).then(function(){
+							reject(err);
+						}).catch(function(err){
+							reject(err);
+						});
+					});
+				}).catch(function(err){
+					reject(err);
+				});
+			}).catch(function(err){
+				reject(err);
+			});
+		});
+	}
+};
 var Ua = {
 	create: function(req, res, next){
 		req.body.geojson = JSON.parse(req.body.geojson);
@@ -130,51 +181,26 @@ var Ua = {
 	vote: function(req, res, next){
 		VoteModel.findOne({ua: req.params.id, user: req.user._id}).then(function(vote){
 			if(vote){
-				return res.error({message : "you have already voted for this ua"});
-			}
-			var fvote = {
-				ua: req.params.id,
-				user: req.user._id,
-				vote: req.body.vote 
-			};
-			VoteModel.create(fvote).then(function(finvote){
-				UaModel.findOne({_id: req.params.id}).then(function(ua){
-					if(!ua ||(ua.private && ua.owner != req.user._id))	return res.error({message: "ua not found"});
-					UaModel.findOneAndUpdate({_id: req.params.id}, {$push: {vote: finvote._id}}, {safe: true, new: true}).then(function(ua){
-						return res.ok(ua);
+				Tools.delvote(req, res, next).then(function(){
+					Tools.vote(req, res, next).then(function(ua){
+						if(ua){
+							return res.ok(ua);
+						}else{
+							return res.error({message: 'ua not found'});
+						}
 					}).catch(function(err){
-						VoteModel.findOneAndRemove({ua: req.params.id, user: req.user._id}).then(function(){
-							return res.error(err);
-						}).catch(function(err){
-							return res.error(err);
-						});
+						return res.error(err);
 					});
 				}).catch(function(err){
 					return res.error(err);
 				});
-			}).catch(function(err){
-				return res.error(err);
-			});
-		});
-	},
-	delvote: function(req, res, next){
-		VoteModel.findOneAndRemove({ua: req.params.id, user: req.user._id}).then(function(vote){
-			UaModel.findOne({_id: req.params.id}).then(function(ua){
-				var votes = ua.vote;
-				var pos = votes.indexOf(vote._id);
-				if(pos != -1){
-					votes.splice(pos,1);
-				}
-				UaModel.findOneAndUpdate({_id: req.params.id}, {vote: votes}, {new: true}).then(function(ua){
-					return res.ok({obj: ua, message: "vote deleted"});
+			}else{
+				Tools.vote(req, res, next).then(function(ua){
+					return res.ok(ua);
 				}).catch(function(err){
 					return res.error(err);
-				})
-			}).catch(function(err){
-				return res.error(err);
-			});
-		}).catch(function(err){
-			return res.error(err);
+				});
+			}
 		});
 	},
 	favorite: function(req, res, next){
@@ -217,11 +243,10 @@ module.exports = function (app) {
 	app.post('/ua/create', 		Ua.create);
 	app.get('/ua/get/geo', 		Ua.getGeo);
 	app.get('/ua/get/mine',	    Ua.mine);
-	app.get('/ua/get/favorite',	    Ua.mine);
+	app.get('/ua/get/favorite',	Ua.mine);
 	app.put('/ua/:id',			Ua.update);
 	app.get('/ua/:id',	    	Ua.get);
 	app.post('/ua/favor',		Ua.favor);
 	app.delete('/ua/:id',		Ua.delete);
 	app.post('/ua/vote/:id',	Ua.vote);
-	app.delete('/ua/vote/:id',	Ua.delvote);
 };
