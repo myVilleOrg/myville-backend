@@ -9,16 +9,16 @@ var UaSchema = new Schema({
 	location: {
 		type: {
 			type: String,
-			default: 'Point'
+			default: 'GeometryCollection'
 		},
-		coordinates: [Schema.Types.Mixed]
+		geometries: [Schema.Types.Mixed]
 	},
 	vote : [{type: Schema.Types.ObjectId, ref: 'Vote'}],
 	title: {type: String, required: true}
 },{
     timestamps: true
 });
-UaSchema.index({location: '2dsphere'});
+UaSchema.index({"location": '2dsphere'});
 mongoose.model('Ua', UaSchema);
 
 module.exports = UaSchema;
