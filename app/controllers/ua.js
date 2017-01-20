@@ -11,7 +11,15 @@ var Ua = {
 		for(var i = 0; i < fields.length; i++) {
 			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'});
 		}
-		UaModel.create({title: req.body.title, description: req.body.description, deleted: false, owner: req.user._id, private: true, location: req.body.geojson}).then(function(ua){
+		var geometries = [];
+		for(var i = 0; i < req.body.geojson.features.length; i++){
+			geometries.push({type: req.body.geojson.features[i].geometry.type, coordinates: req.body.geojson.features[i].geometry.coordinates });
+		}
+		var geojson = {
+			type: 'GeometryCollection',
+			geometries: geometries
+		};
+		UaModel.create({title: req.body.title, description: req.body.description, deleted: false, owner: req.user._id, private: true, location: geojson}).then(function(ua){
 			UserModel.findOneAndUpdate({_id: req.user._id}, {$push: {uas: ua}}, {safe: true, new: true}).then(function(user){
 				return res.ok(ua);
 			}).catch(function(err){
@@ -49,6 +57,7 @@ var Ua = {
 			if(!ua ||(ua.private && ua.owner != req.user._id)) return res.error({message: 'Ua does not exist', error: 'Not found'});
 			return res.ok(ua);
 		}).catch(function(err){
+			console.log(err)
 			return res.error({message: 'Ua not found', error: 'Not found'});
 		});
 	},
@@ -74,13 +83,14 @@ var Ua = {
 			if(mapBorder[i][1] > 90) mapBorder[i][1] = 90;
 			if(mapBorder[i][1] > -90) mapBorder[i][1] = -90;
 		}
+
 		UaModel.find({
-			location: {
-				$geoWithin: {
+			'location': {
+				$geoIntersects: {
 					/*$box: [
 						[mapBorder[0][0], mapBorder[0][1]],
 						[mapBorder[1][0], mapBorder[1][1]]
-					]*/
+					],*/
 					$geometry: {
 						type: 'Polygon',
 						coordinates: [
@@ -103,9 +113,22 @@ var Ua = {
 			path: 'owner',
 			select: '_id avatar deleted username facebook_id'
 		}).then(function(uas){
-			var uaGeoJSON = GeoJSON.parse(uas, {path: 'location'});
+			var parsedUas = [];
+			for(var i = 0; i < uas.length; i++){
+				if(!uas[i].deleted){
+					if(req.user && uas[i].owner._id == req.user._id) {
+						parsedUas.push(uas[i]);
+					}
+
+					if(!uas[i].private){
+						parsedUas.push(uas[i]);
+					}
+				}
+			}
+			var uaGeoJSON = GeoJSON.parse(parsedUas, {path: 'location'});
 			return res.ok(uaGeoJSON);
 		}).catch(function(err){
+			console.log(err)
 			return res.error({message: err});
 		});
 	},
@@ -113,6 +136,28 @@ var Ua = {
 		UaModel.find({owner: req.user._id, deleted: false}).populate({path: 'owner'}).then(function(uas){
 			var uaGeoJSON = GeoJSON.parse(uas, {path: 'location'});
 			return res.ok(uaGeoJSON);
+		});
+	},
+	favorite: function(req, res, next){
+		UserModel.findOne({_id: req.user._id, deleted: false}).select('_id avatar deleted favoris username facebook_id').populate({path: 'favoris'}).then(function(user){
+
+			var promises = [];
+			for(var i = 0; i < user.favoris.length; i++){
+				promises.push(UserModel.findOne({_id: user.favoris[i].owner}).select('_id avatar deleted username facebook_id'));
+			}
+			Promise.all(promises).then(function(users){
+				var parsedUa = []
+				for(var i = 0; i < users.length; i++){
+					user.favoris[i].owner = users[i];
+					if(!user.favoris[i].deleted){
+						parsedUa.push(user.favoris[i]);
+					}
+				}
+				var uaGeoJSON = GeoJSON.parse(parsedUa, {path: 'location'});
+				return res.ok(uaGeoJSON);
+			});
+		}).catch(function(err){
+			console.log(err)
 		});
 	},
 	update: function(req, res, next){
@@ -146,6 +191,7 @@ module.exports = function (app) {
 	app.get('/ua/get/geo', 		Ua.getGeo);
 	app.get('/ua/get/mine',	    Ua.mine);
 	app.post('/ua/search',	   	Ua.search);
+	app.get('/ua/get/favorite', Ua.favorite);
 	app.put('/ua/:id',			Ua.update);
 	app.get('/ua/:id',	    	Ua.get);
 	app.post('/ua/favor',		Ua.favor);
