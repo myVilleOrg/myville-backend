@@ -132,10 +132,14 @@ var Ua = {
 				promises.push(UserModel.findOne({_id: user.favoris[i].owner}).select('_id avatar deleted username facebook_id'));
 			}
 			Promise.all(promises).then(function(users){
+				var parsedUa = []
 				for(var i = 0; i < users.length; i++){
 					user.favoris[i].owner = users[i];
+					if(!user.favoris[i].deleted){
+						parsedUa.push(user.favoris[i]);
+					}
 				}
-				var uaGeoJSON = GeoJSON.parse(user.favoris, {path: 'location'});
+				var uaGeoJSON = GeoJSON.parse(parsedUa, {path: 'location'});
 				return res.ok(uaGeoJSON);
 			});
 		}).catch(function(err){
