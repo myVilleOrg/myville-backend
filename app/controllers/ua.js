@@ -52,6 +52,20 @@ var Ua = {
 			return res.error({message: 'Ua not found', error: 'Not found'});
 		});
 	},
+	search: function(req, res, next){
+		UaModel.find({$and: [{$or: [{title: { '$regex' : req.body.search, '$options' : 'i' }}, {description: { '$regex' : req.body.search, '$options' : 'i' }}]}, {$or: [{private: false}, {owner: req.user._id}]}], deleted: false}).populate({
+			path: 'owner',
+			select: '_id avatar deleted username facebook_id'
+		}).then(function(uas){
+			if(!uas) {
+				return res.error({message: 'No Uas founded', error: 'Not found'});
+			} else {
+				return res.ok(uas);
+			}
+		}).catch(function(err){
+			return res.error({message: 'Uas not found', error: 'Not found'});
+		});
+	},
 	getGeo: function(req, res, next){
 		var mapBorder = JSON.parse(req.query.map);
 		for(var i = 0; i < mapBorder.length; i++){
@@ -107,7 +121,6 @@ var Ua = {
 			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'});
 		}
 		req.body.publish = (req.body.publish === 'true'); // conversion booleene
-		console.log(req.body.publish)
 		UaModel.findOneAndUpdate({_id: req.params.id, deleted: false}, {description: req.body.description, title: req.body.title, private: req.body.publish}, {new: true}).then(function(ua){
 			if(!ua || ua.owner != req.user._id) return res.error({message: 'Ua does not exist / Ua is not yours', error: 'Not found / Not yours'});
 			return res.json(ua);
@@ -132,6 +145,7 @@ module.exports = function (app) {
 	app.post('/ua/create', 		Ua.create);
 	app.get('/ua/get/geo', 		Ua.getGeo);
 	app.get('/ua/get/mine',	    Ua.mine);
+	app.post('/ua/search',	   	Ua.search);
 	app.put('/ua/:id',			Ua.update);
 	app.get('/ua/:id',	    	Ua.get);
 	app.post('/ua/favor',		Ua.favor);
