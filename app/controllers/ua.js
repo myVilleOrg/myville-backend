@@ -86,11 +86,10 @@ var Ua = {
 	favor: function(req, res, next){
 		UaModel.findOne({_id: req.body.ua}).then(function(ua){
 			UserModel.findOne({_id: req.user._id}).then(function(user){
-				if(!ua ||(ua.private && ua.owner !== req.user._id))	return res.error({message: "ua not found"});
+				if(!ua ||(ua.private && String(ua.owner) !== req.user._id))	return res.error({message: "ua not found"});
 
 				var pos = user.favoris.indexOf(ua._id);
 				var tmpFavoris = user.favoris;
-
 				if(pos == -1) tmpFavoris.push(ua);
 				else tmpFavoris.splice(pos,1);
 
