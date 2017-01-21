@@ -5,14 +5,11 @@ var express 		= require('express'),
 	VoteModel		= mongoose.model('Vote');
 
 var Vote = {
-	getByUaUser: function(req, res, next){
+	getVoteByUa: function(req, res, next){
 		VoteModel.findOne({user: req.user._id, ua: req.params.uaId}).then(function(vote){
-			if(vote){
-				console.log(vote);
-				return res.ok(vote);
-			}else{
-				return res.error({message: "vote not found"});
-			}
+			if(!vote) return res.error({message: "vote not found"});
+
+			return res.ok(vote);
 		}).catch(function(err){
 			return res.error(err);
 		});
@@ -20,5 +17,5 @@ var Vote = {
 
 };
 module.exports = function (app) {
-	app.get('/vote/:uaId',	Vote.getByUaUser);
+	app.get('/vote/:uaId',	Vote.getVoteByUa);
 };

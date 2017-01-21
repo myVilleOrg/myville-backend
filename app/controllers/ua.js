@@ -7,20 +7,20 @@ var express 		= require('express'),
 	GeoJSON 		= require('mongodb-geojson-normalize');
 
 var Tools = {
-	delvote: function(req, res, next){
+	deleteVote: function(req, res, next){
 		return new Promise(function(resolve, reject){
 			VoteModel.findOneAndRemove({ua: req.params.id, user: req.user._id}).then(function(vote){
 				UaModel.findOne({_id: req.params.id}).then(function(ua){
 					var votes = ua.vote;
 					var pos = votes.indexOf(vote._id);
-					if(pos != -1){
+					if(pos !== -1){
 						votes.splice(pos,1);
 					}
 					UaModel.findOneAndUpdate({_id: req.params.id}, {vote: votes}, {new: true}).then(function(ua){
 						resolve({obj: ua, message: "vote deleted"});
 					}).catch(function(err){
 						reject(err);
-					})
+					});
 				}).catch(function(err){
 					reject(err);
 				});
@@ -34,12 +34,12 @@ var Tools = {
 			var fvote = {
 				ua: req.params.id,
 				user: req.user._id,
-				vote: req.body.vote 
+				vote: req.body.vote
 			};
-			VoteModel.create(fvote).then(function(finvote){
+			VoteModel.create(fvote).then(function(foundVote){
 				UaModel.findOne({_id: req.params.id}).then(function(ua){
 					if(!ua ||(ua.private && ua.owner != req.user._id))	return res.error({message: "ua not found"});
-					UaModel.findOneAndUpdate({_id: req.params.id}, {$push: {vote: finvote._id}}, {safe: true, new: true}).then(function(ua){
+					UaModel.findOneAndUpdate({_id: req.params.id}, {$push: {vote: foundVote._id}}, {safe: true, new: true}).then(function(ua){
 						resolve(ua);
 					}).catch(function(err){
 						VoteModel.findOneAndRemove({ua: req.params.id, user: req.user._id}).then(function(){
@@ -85,7 +85,7 @@ var Ua = {
 	favor: function(req, res, next){
 		UaModel.findOne({_id: req.body.ua}).then(function(ua){
 			UserModel.findOne({_id: req.user._id}).then(function(user){
-				if(!ua ||(ua.private && ua.owner != req.user._id))	return res.error({message: "ua not found"});
+				if(!ua ||(ua.private && ua.owner !== req.user._id))	return res.error({message: "ua not found"});
 
 				var pos = user.favoris.indexOf(ua._id);
 				var tmpFavoris = user.favoris;
@@ -180,7 +180,7 @@ var Ua = {
 	vote: function(req, res, next){
 		VoteModel.findOne({ua: req.params.id, user: req.user._id}).then(function(vote){
 			if(vote){
-				Tools.delvote(req, res, next).then(function(){
+				Tools.deleteVote(req, res, next).then(function(){
 					Tools.vote(req, res, next).then(function(ua){
 						if(ua){
 							return res.ok(ua);
@@ -193,7 +193,7 @@ var Ua = {
 				}).catch(function(err){
 					return res.error(err);
 				});
-			}else{
+			} else {
 				Tools.vote(req, res, next).then(function(ua){
 					return res.ok(ua);
 				}).catch(function(err){
