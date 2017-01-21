@@ -10,7 +10,8 @@ var express			= require('express'),
 	multer			= require('multer'),
 	slug			= require('slug'),
 	nodemailer		= require('nodemailer'),
-	smtpTransport	= require('nodemailer-smtp-transport');
+	smtpTransport	= require('nodemailer-smtp-transport'),
+	path 			= require('path');
 
 var transporter = nodemailer.createTransport(smtpTransport(secretConfig.email));
 
@@ -19,7 +20,7 @@ var storage = multer.diskStorage({
 		cb(null, 'app/upload/')
 	},
 	filename: function (req, file, cb) {
-		cb(null, (Math.random().toString(36)+'00000000000000000').slice(2, 10) + Date.now() + file.originalname);
+		cb(null, (Math.random().toString(36)+'00000000000000000').slice(2, 10) + Date.now() + path.extname(file.originalname));
 	}
 });
 
@@ -243,6 +244,9 @@ var User = {
 		});
 	},
 	updateAvatar: function(req, res, next){
+		var extension = ['.jpg', '.jpeg', '.png', '.gif'];
+		if(!extension.includes(path.extname(req.files[0].filename).toLowerCase())) return res.error({message: 'It\'s not a image ! '});
+		if(req.files[0].mimetype.split('/')[0] != 'image')  return res.error({message: 'It\'s not a image ! '});
 		UserModel.findOneAndUpdate({_id: req.user._id}, {avatar: req.files[0].filename}, {new: true}).then(function(user){
 			return res.ok(user);
 		}).catch(function(err){
