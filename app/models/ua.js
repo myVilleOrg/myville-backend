@@ -13,6 +13,7 @@ var UaSchema = new Schema({
 		},
 		geometries: [Schema.Types.Mixed]
 	},
+	vote : [{type: Schema.Types.ObjectId, ref: 'Vote'}],
 	title: {type: String, required: true}
 },{
     timestamps: true
