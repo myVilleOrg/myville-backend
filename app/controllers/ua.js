@@ -56,6 +56,34 @@ var Tools = {
 				reject(err);
 			});
 		});
+	},
+	computeScore: function(uas){
+		return new Promise(function(resolve, reject){
+			for(var i = 0; i < uas.length; i++){
+				var currentScore = 0;
+				var countVote = [0, 0, 0, 0, 0];
+				if(uas[i].vote.length > 0) {
+					for(var j = 0; j < uas[i].vote.length; j++){
+						var idx = uas[i].vote[j].vote[0]
+						countVote[idx]++;
+					}
+				}
+				currentScore = Tools.formulaScore(countVote, uas[i].createdAt);
+				uas[i]['score'] = currentScore;
+			}
+			// sorted by score
+			var UabyScore = uas.slice(0);
+			UabyScore.sort(function(a,b) {
+				return b.score - a.score;
+			});
+			UabyScore = UabyScore.filter(function(ua){
+				return parseInt(ua.score) >= 0;
+			});
+			resolve(UabyScore);
+		});
+	},
+	formulaScore: function(countVote, creationTime){
+		return (5 * countVote[0] + 3 * countVote[1] + 4 * countVote[2] + (-1) * countVote[3] + (-5) * countVote[4]) * Math.exp(- (Date.now() - creationTime)/(1000*3600));
 	}
 };
 var Ua = {
@@ -110,7 +138,6 @@ var Ua = {
 			if(!ua ||(ua.private && ua.owner != req.user._id)) return res.error({message: 'Ua does not exist', error: 'Not found'});
 			return res.ok(ua);
 		}).catch(function(err){
-			console.log(err)
 			return res.error({message: 'Ua not found', error: 'Not found'});
 		});
 	},
@@ -158,7 +185,6 @@ var Ua = {
 					if(req.user && uas[i].owner._id == req.user._id) {
 						parsedUas.push(uas[i]);
 					}
-
 					if(!uas[i].private){
 						parsedUas.push(uas[i]);
 					}
@@ -167,7 +193,66 @@ var Ua = {
 			var uaGeoJSON = GeoJSON.parse(parsedUas, {path: 'location'});
 			return res.ok(uaGeoJSON);
 		}).catch(function(err){
-			console.log(err)
+			return res.error({message: err});
+		});
+	},
+	getPopular: function(req, res, next){
+		var mapBorder = JSON.parse(req.query.map);
+		for(var i = 0; i < mapBorder.length; i++){
+			if(mapBorder[i][0] > 180) mapBorder[i][0] = 179;
+			if(mapBorder[i][0] < -180) mapBorder[i][0] = -179;
+			if(mapBorder[i][1] > 90) mapBorder[i][1] = 90;
+			if(mapBorder[i][1] > -90) mapBorder[i][1] = -90;
+		}
+
+		UaModel.find({
+			'location': {
+				$geoIntersects: {
+					/*$box: [
+						[mapBorder[0][0], mapBorder[0][1]],
+						[mapBorder[1][0], mapBorder[1][1]]
+					],*/
+					$geometry: {
+						type: 'Polygon',
+						coordinates: [
+							[
+								[mapBorder[0][0], mapBorder[0][1]],
+								[mapBorder[1][0], mapBorder[1][1]],
+								[-mapBorder[0][0], mapBorder[1][1]],
+								[mapBorder[0][0], -mapBorder[1][1]],
+								[mapBorder[0][0], mapBorder[0][1]],
+							]
+						],
+						crs: {
+							type: "name",
+							properties: { name: "urn:x-mongodb:crs:strictwinding:EPSG:4326" }
+						}
+					}
+				}
+			}
+		, deleted: false}).populate({
+			path: 'owner',
+			select: '_id avatar deleted username facebook_id'
+		}).populate({
+			path: 'vote'
+		}).then(function(uas){
+			var parsedUas = [];
+			for(var i = 0; i < uas.length; i++){
+				if(!uas[i].deleted){
+					if(req.user && uas[i].owner._id == req.user._id) {
+						parsedUas.push(uas[i]);
+					}
+					if(!uas[i].private){
+						parsedUas.push(uas[i]);
+					}
+				}
+			}
+			Tools.computeScore(parsedUas).then(function(scoredUa){
+				var uaGeoJSON = GeoJSON.parse(scoredUa, {path: 'location'});
+				return res.ok(uaGeoJSON);
+			});
+
+		}).catch(function(err){
 			return res.error({message: err});
 		});
 	},
@@ -221,7 +306,7 @@ var Ua = {
 				return res.ok(uaGeoJSON);
 			});
 		}).catch(function(err){
-			console.log(err)
+			return res.error(err);
 		});
 	},
 	update: function(req, res, next){
@@ -253,6 +338,7 @@ var Ua = {
 module.exports = function (app) {
 	app.post('/ua/create', 		Ua.create);
 	app.get('/ua/get/geo', 		Ua.getGeo);
+	app.get('/ua/get/popular', 	Ua.getPopular);
 	app.get('/ua/get/mine',	    Ua.mine);
 	app.get('/ua/get/favorite', Ua.favorite);
 	app.put('/ua/:id',			Ua.update);
