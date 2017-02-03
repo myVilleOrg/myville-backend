@@ -9,7 +9,7 @@ var express 		= require('express'),
 var Tools = {
 	deleteVote: function(req, res, next){
 		return new Promise(function(resolve, reject){
-			VoteModel.findOneAndRemove({ua: req.params.id, user: req.user._id}).then(function(vote){
+			VoteModel.findOneAndRemove({ua: req.params.id, user: req.user._id}, {deleted: true}).then(function(vote){
 				UaModel.findOne({_id: req.params.id}).then(function(ua){
 					var votes = ua.vote;
 					var pos = votes.indexOf(vote._id);
@@ -202,6 +202,17 @@ var Ua = {
 			}
 		});
 	},
+	deleteVote: function(req, res, next){
+		VoteModel.findOne({ua: req.params.id, user: req.user._id}).then(function(vote){
+			if(vote){
+				Tools.deleteVote(req, res, next).then(function(){
+					return res.ok();
+				}).catch(function(err){
+					return res.error(err);
+				});
+			}
+		});
+	},
 	favorite: function(req, res, next){
 		UserModel.findOne({_id: req.user._id, deleted: false}).select('_id avatar deleted favoris username facebook_id').populate({path: 'favoris'}).then(function(user){
 
@@ -260,4 +271,5 @@ module.exports = function (app) {
 	app.post('/ua/favor',		Ua.favor);
 	app.delete('/ua/:id',		Ua.delete);
 	app.post('/ua/vote/:id',	Ua.vote);
+	app.delete('/ua/vote/:id',	Ua.deleteVote);
 };
