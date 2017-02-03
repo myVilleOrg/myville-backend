@@ -247,6 +247,7 @@ var User = {
 		var extension = ['.jpg', '.jpeg', '.png', '.gif'];
 		if(!extension.indexOf(path.extname(req.files[0].filename).toLowerCase())==-1) return res.error({message: 'It\'s not a image ! '});
 		if(req.files[0].mimetype.split('/')[0] != 'image')  return res.error({message: 'It\'s not a image ! '});
+
 		UserModel.findOneAndUpdate({_id: req.user._id}, {avatar: req.files[0].filename}, {new: true}).then(function(user){
 			return res.ok(user);
 		}).catch(function(err){
