@@ -58,11 +58,11 @@ $ npm start
 ### Docker
 Build the image :
 ```bash
-$ sudo docker build path-of-myville-backend -t myville-backend
+$ sudo docker build absolute-path-of-myville-backend -t myville-backend
 ```
 Run it in a container :
 ```bash
-$ sudo docker run -i -d -p 3000:3000 -v path-of-myville-backend:/app myville-backend
+$ sudo docker run -i -d -p 3000:3000 -v absolute-path-of-myville-backend-config-folder:/app/config myville-backend
 ```
 
 ### Pull Request
