@@ -9,7 +9,7 @@ To start developping the myVille backend follow the steps.
 
 First copy the project :
 ```bash
-$ git clone https://bitbucket.org/kakulukian/myville-backend.git
+$ git clone git@github.com:myVilleOrg/myville-backend.git
 ```
 When it finishes
 ```bash
@@ -18,11 +18,53 @@ $ npm install
 You have to install mongodb at least v3.0 in order to use Big Polygon feature (https://www.mongodb.com/blog/post/mongodb-30-features-big-polygon). A tutorial to install last version mongodb https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/
 And it should be nice :)
 
+### Configuration
+Go to the file config/config.js.
+Update the file with our informations.
+```
+development: {
+		root: rootPath, #Don't touch
+		app: {
+			name: 'backend' #Name of application
+		},
+		port: process.env.PORT || 3000, # port running (by default 3000)
+		db: '', # MongoDB address
+		tokenSalt: '', # Token salt can be anything
+		nosecurePath: ['/user/reset', '/user/create', '/user/login', '/', '/user/login/facebook', '/user/login/google', '/ua/get/geo', '/ua/get/popular', '/user/forgetPassword'], #Don't touch
+		facebook: { # Facebook application credentials
+			appId: '',
+			appSecret: ''
+		},
+		google: { # Google application credentials
+			appId: '',
+			appSecret: ''
+		},
+		email: { # SMTP server configuration to send mail
+			host: 'smtp.gmail.com',
+			port: 587,
+			auth: {
+				user: '',
+				pass: ''
+			}
+		}
+	}
+```
 ### Usage
 To launch the project, just use the following command :
 ```bash
 $ npm start
 ```
+
+### Docker
+Build the image :
+```bash
+$ sudo docker build path-of-myville-backend -t myville-backend
+```
+Run it in a container :
+```bash
+$ sudo docker run -i -d -p 3000:3000 -v path-of-myville-backend:/app myville-backend
+```
+
 ### Pull Request
 If you want to add features on the backend, you should respect several conditions :
 
