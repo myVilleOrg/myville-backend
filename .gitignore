@@ -3,4 +3,4 @@ public/components
 .sass-cache
 npm-debug.log
 app/upload/
-config/config.js
+config/config*.js

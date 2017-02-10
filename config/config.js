@@ -11,21 +11,21 @@ var config = {
 		port: process.env.PORT || 3000,
 		db: 'mongodb://localhost/backend-development',
 		tokenSalt: 'zbeb',
-		nosecurePath: ['/user/reset', '/user/create', '/user/login', '/', '/user/login/facebook', '/user/login/google', '/ua/get/geo', '/user/forgetPassword'],
+		nosecurePath: ['/user/reset', '/user/create', '/user/login', '/', '/user/login/facebook', '/user/login/google', '/ua/get/geo', '/ua/get/popular', '/user/forgetPassword'],
 		facebook: {
-			appId: '269509866781876',
+			appId: '',
 			appSecret: ''
 		},
 		google: {
-			appId: '49433176261-hjeueecpafioh56r67fik9nqkum5np0g.apps.googleusercontent.com',
-			appSecret: 'vzZQjNfMPWvKw59dTkh9J8Pt'
+			appId: '',
+			appSecret: ''
 		},
 		email: {
 			host: 'smtp.gmail.com',
 			port: 587,
 			auth: {
-				user: 'smtpdelamortsylvestre@gmail.com',
-				pass: 'uselesspassword'
+				user: '',
+				pass: ''
 			}
 		}
 	},
