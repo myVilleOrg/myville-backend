@@ -142,7 +142,7 @@ var Ua = {
 		});
 	},
 	search: function(req, res, next){
-		UaModel.find({$and: [{$or: [{title: { '$regex' : req.body.search, '$options' : 'i' }}, {description: { '$regex' : req.body.search, '$options' : 'i' }}]}, {$or: [{private: false}, {owner: req.user._id}]}], deleted: false}).populate({
+		UaModel.find({$and: [{$or: [{title: { '$regex' : req.body.search, '$options' : 'i' }}, {description: { '$regex' : req.body.search, '$options' : 'i' }}]}, {private: false}], deleted: false}).populate({
 			path: 'owner',
 			select: '_id avatar deleted username facebook_id'
 		}).then(function(uas){
