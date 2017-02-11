@@ -9,6 +9,24 @@ var methodOverride		= require('method-override');
 var jwt					= require('jsonwebtoken');
 var cors				= require('cors');
 
+var Tools = {
+	generateToken(token, config, req, res, next){
+		return new Promise(function(resolve, reject){
+			jwt.verify(token, config.tokenSalt, function(err, decoded) {
+				if(err) reject({message: err.message, error: err});
+				if(decoded.exp - Math.round(new Date()/1000) < 43200) {
+					var newToken = jwt.sign(decoded._doc, config.tokenSalt, {
+						expiresIn: '1440m'
+					});
+					res.setHeader('x-access-token', newToken);
+				}
+				req.user = decoded._doc;
+				resolve();
+			});
+		});
+	}
+};
+
 module.exports = function(app, config) {
 	var env = process.env.NODE_ENV || 'development';
 	app.locals.ENV = env;
@@ -38,32 +56,33 @@ module.exports = function(app, config) {
 	app.all('*', function(req, res, next){
 		var regexID = /^[a-f\d]{24}$/i;
 		var token = req.body.token || req.headers['x-access-token'];
-		if(token){
-			jwt.verify(token, config.tokenSalt, function(err, decoded) {
-				if(err) return res.status(401).json({message: err.message, error: err});
-				if(decoded.exp - Math.round(new Date()/1000) < 43200) {
-					var newToken = jwt.sign(decoded._doc, config.tokenSalt, {
-						expiresIn: '1440m'
-					});
-					res.setHeader('x-access-token', newToken);
-				}
-				req.user = decoded._doc;
-			});
-		}
+
+		var canIpass = false;
 		if(req.path.slice(0, 6) === '/user/' && regexID.test(req.path.slice(6))){ // GET /user/:id
-			return next();
+			canIpass = true;
 		}
 
 		if(req.path.slice(0, 4) === '/ua/' && regexID.test(req.path.slice(4))){ // GET /ua/:id
-			return next();
+			canIpass = true;
 		}
 
 		if(req.path.slice(0, 8) === '/static/'){ // GET /static/
-			return next();
+			canIpass = true;
 		}
 
 		for(var i = 0; i < config.nosecurePath.length; i++) {
 			if(req.path === config.nosecurePath[i]){
+				canIpass = true;
+			}
+		}
+		if(canIpass){
+			if(token) {
+				return Tools.generateToken(token, config, req, res, next).then(function(){
+					return next();
+				}, function(err){
+					return res.status(401).json(err);
+				});
+			} else {
 				return next();
 			}
 		}
@@ -71,16 +90,10 @@ module.exports = function(app, config) {
 		if(!token) {
 			return res.status(500).json({message: 'Where is your token ?', error: 'Token Missing'});
 		} else {
-			jwt.verify(token, config.tokenSalt, function(err, decoded) {
-				if(err) return res.status(401).json({message: err.message, error: err});
-				if(decoded.exp - Math.round(new Date()/1000) < 43200) {
-					var newToken = jwt.sign(decoded._doc, config.tokenSalt, {
-						expiresIn: '1440m'
-					});
-					res.setHeader('x-access-token', newToken);
-				}
-				req.user = decoded._doc;
+			return Tools.generateToken(token, config, req, res, next).then(function(){
 				return next();
+			}, function(err){
+				return res.status(401).json(err);
 			});
 		}
 
