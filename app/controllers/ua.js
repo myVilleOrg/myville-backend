@@ -141,6 +141,20 @@ var Ua = {
 			return res.error({message: 'Ua not found', error: 'Not found'});
 		});
 	},
+	search: function(req, res, next){
+		UaModel.find({$and: [{$or: [{title: { '$regex' : req.body.search, '$options' : 'i' }}, {description: { '$regex' : req.body.search, '$options' : 'i' }}]}, {private: false}], deleted: false}).populate({
+			path: 'owner',
+			select: '_id avatar deleted username facebook_id'
+		}).then(function(uas){
+			if(!uas) {
+				return res.error({message: 'No Uas founded', error: 'Not found'});
+			} else {
+				return res.ok(uas);
+			}
+		}).catch(function(err){
+			return res.error({message: 'Uas not found', error: 'Not found'});
+		});
+	},
 	getGeo: function(req, res, next){
 		var mapBorder = JSON.parse(req.query.map);
 		for(var i = 0; i < mapBorder.length; i++){
@@ -351,6 +365,7 @@ module.exports = function (app) {
 	app.get('/ua/get/geo', 		Ua.getGeo);
 	app.get('/ua/get/popular', 	Ua.getPopular);
 	app.get('/ua/get/mine',	    Ua.mine);
+	app.post('/ua/search',	   	Ua.search);
 	app.get('/ua/get/favorite', Ua.favorite);
 	app.put('/ua/:id',			Ua.update);
 	app.get('/ua/:id',	    	Ua.get);
