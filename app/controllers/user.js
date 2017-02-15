@@ -14,7 +14,7 @@ var express			= require('express'),
 	path 			= require('path');
 
 var transporter = nodemailer.createTransport(smtpTransport(secretConfig.email));
-
+/*Name of uploaded file*/
 var storage = multer.diskStorage({
 	destination: function (req, file, cb) {
 		cb(null, 'app/upload/')
@@ -31,11 +31,11 @@ var Tools = {
 		return new Promise(function(resolve, reject){
 			bcrypt.genSalt(10, function (err, salt) {
 				if(err) return res.error({message: err.message, error: err});
-				var password = objUser.password ? objUser.password : shortid.generate();
+				var password = objUser.password ? objUser.password : shortid.generate(); // no password, we generate one
 				bcrypt.hash(password, salt, function (err, hash) {
 					if(err) return res.error({message: err.message, error: err});
-					var slugify = slug(objUser.name);
-					var mail = objUser.email ? objUser.email : slugify + '@myVille.com';
+					var slugify = slug(objUser.name); // if we get space we slugify username
+					var mail = objUser.email ? objUser.email : slugify + '@myVille.com'; // case for facebook
 					var avat = objUser.avatar ? objUser.avatar : '';
 					var fuser = {username: slugify, password: hash, email: mail, phonenumber: req.body.phonenumber, avatar: avat, deleted: false, uas: []};
 					fuser.facebook_id = objUser.facebook_id ? objUser.facebook_id : '';
@@ -44,7 +44,7 @@ var Tools = {
 						user.password = undefined; // remove password from return
 						var token = jwt.sign(user, secretConfig.tokenSalt, {
 							expiresIn: '1440m'
-						});
+						});// we log the account
 						Tools.sendMail(mail, 'Inscription sur myVille', 'Bonjour, \n Vous êtes bien inscrit sur myVille !').then();						Tools.sendMail(mail, 'Inscription sur myVille', 'Bonjour, \n Vous êtes bien inscrit sur myVille !').then();						Tools.sendMail(mail, 'Inscription sur myVille', 'Bonjour, \n Vous êtes bien inscrit sur myVille !').then();						resolve({token: token, user: user});
 					}).catch(function(err){
 						reject(err);
@@ -88,10 +88,11 @@ var User = {
 		UserModel.findOne({email: req.body.email}).then(function(user){
 			if(!bcrypt.compareSync(req.body.password, user.password)) return res.json({message : 'Login failed', error: 'Error'});
 
+			// if user is deleted we reactivate account
 			if(user.deleted === true) { // we reactivate user visibility
 				UserModel.update({_id: user._id}, {deleted: false}).then();
 			}
-
+			// generate a jsonwebtoken
 			var token = jwt.sign(user, secretConfig.tokenSalt, {
 				expiresIn: '1440m'
 			});
@@ -105,16 +106,16 @@ var User = {
 	loginFacebook: function(req, res, next) {
 		if(!req.body.accessToken) return res.status(404).json({message: 'Access Token', error: 'Missing'});
 
-		FB.setAccessToken(req.body.accessToken);
+		FB.setAccessToken(req.body.accessToken); // set accesstoken for using Facebook api
 
-		FB.api('/me', {fields: 'email, name'}, function(fbUser){
+		FB.api('/me', {fields: 'email, name'}, function(fbUser){ // we fetch the facebook's email, name
 			if(!fbUser || fbUser.error){
 				var error = !fbUser ? 'error occurred' : fbUser.error;
 				return res.error({message: error});
 			}
-			//TODO link fb account if same email
+
 			UserModel.findOne({facebook_id: fbUser.id}).then(function(user){
-				if(user) { // we log user with our token
+				if(user) { // we log user with our token because already existing in our db
 					if(user.deleted === true) { // we reactivate user visibility
 						UserModel.update({_id: user._id}, {deleted: false}).then();
 					}
@@ -134,7 +135,7 @@ var User = {
 							Tools.createAccount(req, res, next, objUser).then(function(data){
 								return res.ok(data);
 							});
-						} else {
+						} else { //log if we have an account with the same facebooks's email
 							var token = jwt.sign(user, secretConfig.tokenSalt, {
 								expiresIn: '1440m'
 							});
@@ -153,7 +154,7 @@ var User = {
 	loginGoogle: function(req, res, next){
 		if(!req.body.accessToken) return res.status(404).json({message: 'Access Token', error: 'Missing'});
 
-		request.get({uri: 'https://www.googleapis.com/plus/v1/people/me', headers: {'Authorization': "Bearer "+req.body.accessToken }}).then(function(gUser){
+		request.get({uri: 'https://www.googleapis.com/plus/v1/people/me', headers: {'Authorization': "Bearer "+req.body.accessToken }}).then(function(gUser){ //access to google api
 			gUser = JSON.parse(gUser);
 			UserModel.findOne({google_id: gUser.id}).then(function(user){
 				if(user) { // we log user with our token
@@ -177,7 +178,7 @@ var User = {
 							Tools.createAccount(req, res, next, objUser).then(function(data){
 								return res.ok(data);
 							});
-						} else {
+						} else { //log if we have an account with the same facebooks's email
 							var token = jwt.sign(user, secretConfig.tokenSalt, {
 								expiresIn: '1440m'
 							});
@@ -203,7 +204,7 @@ var User = {
 	update: function(req, res, next){
 		UserModel.findOne({_id: req.user._id}).then(function(user){
 			if(req.body.username && !req.body.password){
-				if(user.username != req.body.username){
+				if(user.username != req.body.username){ // same username in db and asked by user
 					UserModel.update({_id: user._id}, {username: req.body.username}).then(function(user){
 						return res.ok({message: 'OK'});
 					}).catch(function(err){
@@ -211,7 +212,7 @@ var User = {
 					});
 				}
 			}
-			if(req.body.password && req.body.oldPassword && !req.body.username){
+			if(req.body.password && req.body.oldPassword && !req.body.username){ // update the password
 				if(bcrypt.compareSync(req.body.oldPassword, user.password)){
 					bcrypt.hash(req.body.password, salt, function (err, hash) {
 						if(err) return res.error({message: err.message, error: err});
@@ -245,7 +246,9 @@ var User = {
 	},
 	updateAvatar: function(req, res, next){
 		var extension = ['.jpg', '.jpeg', '.png', '.gif'];
+		// check extension
 		if(!extension.indexOf(path.extname(req.files[0].filename).toLowerCase())==-1) return res.error({message: 'It\'s not a image ! '});
+		//check mimetype
 		if(req.files[0].mimetype.split('/')[0] != 'image')  return res.error({message: 'It\'s not a image ! '});
 
 		UserModel.findOneAndUpdate({_id: req.user._id}, {avatar: req.files[0].filename}, {new: true}).then(function(user){
@@ -269,12 +272,14 @@ var User = {
 	reset: function(req, res, next){
 		if(!req.body.password) return res.error({message: 'password missing.'});
 		if(!req.body.tokenReset) return res.error({message: 'Token reset missing.'});
+		//check if user has a token to reset and not expired
 		UserModel.findOne({resetPasswordToken: req.body.tokenReset, resetPasswordExpires: {$gt: Date.now()}}).then(function(user){
 			if(!user) return res.error({message: 'Bad token or expires'});
 			bcrypt.hash(req.body.password, salt, function (err, hash) {
 				user.password = hash;
 				user.resetPasswordToken = '';
 				user.resetPasswordExpires = null;
+				//we remove the token and expiration
 				user.save(function(err){
 					if(err) return res.error({message: err});
 					return res.ok({message: 'OK'});
@@ -287,8 +292,8 @@ var User = {
 	forgetPassword: function(req, res, next){
 		if(!req.body.email) return res.error({message:'Email missing.'});
 		UserModel.findOne({email: req.body.email}).then(function(user){
-			user.resetPasswordToken = shortid.generate();
-        	user.resetPasswordExpires = Date.now() + 3600000;
+			user.resetPasswordToken = shortid.generate(); // generate a tkn
+        	user.resetPasswordExpires = Date.now() + 3600000; // Store expiration date 24h
         	user.save(function(){
 				Tools.sendMail(req.body.email, 'Mot de passe oublié sur myVille', 'Vous recevez ce mail car vous avez demandé une demande de réinitialisation de votre mot de passe.\n\n' +
 			      'Merci de cliquez sur le lien pour commencer la procédure :\n\n' +

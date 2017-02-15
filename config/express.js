@@ -32,7 +32,6 @@ module.exports = function(app, config) {
 	app.locals.ENV = env;
 	app.locals.ENV_DEVELOPMENT = env == 'development';
 
-	// Setup CORS
 	app.use(logger('dev'));
 	app.use(bodyParser.json());
 	app.use(bodyParser.urlencoded({
@@ -41,6 +40,7 @@ module.exports = function(app, config) {
 
 	app.use(cookieParser());
 	app.use(compress());
+	// Delivers upload files static
 	app.use('/static', express.static(config.root + '/app/upload'));
 	app.use(methodOverride());
 	app.use(function(req, res, next){
@@ -52,7 +52,11 @@ module.exports = function(app, config) {
 		};
 		next();
 	});
+
+	// Setup CORS
 	app.use(cors());
+
+	//Setup when we need Token or not
 	app.all('*', function(req, res, next){
 		var regexID = /^[a-f\d]{24}$/i;
 		var token = req.body.token || req.headers['x-access-token'];

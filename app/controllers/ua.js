@@ -7,6 +7,7 @@ var express 		= require('express'),
 	GeoJSON 		= require('mongodb-geojson-normalize');
 
 var Tools = {
+	/*Permits to delete vote*/
 	deleteVote: function(req, res, next){
 		return new Promise(function(resolve, reject){
 			VoteModel.findOneAndRemove({ua: req.params.id, user: req.user._id}, {deleted: true}).then(function(vote){
@@ -29,6 +30,7 @@ var Tools = {
 			});
 		});
 	},
+	/*Permits to insert vote*/
 	vote: function(req, res, next){
 		return new Promise(function(resolve, reject){
 			var fvote = {
@@ -57,6 +59,7 @@ var Tools = {
 			});
 		});
 	},
+	/*Compute a score for a uas' list*/
 	computeScore: function(uas){
 		return new Promise(function(resolve, reject){
 			for(var i = 0; i < uas.length; i++){
@@ -77,11 +80,12 @@ var Tools = {
 				return b.score - a.score;
 			});
 			UabyScore = UabyScore.filter(function(ua){
-				return parseInt(ua.score) >= 0;
+				return parseInt(ua.score) >= 0; // we fetch only score > 0
 			});
 			resolve(UabyScore);
 		});
 	},
+	/*Formula to get a score Ae^(-t)*/
 	formulaScore: function(countVote, creationTime){
 		return (5 * countVote[0] + 3 * countVote[1] + 4 * countVote[2] + (-1) * countVote[3] + (-5) * countVote[4]) * Math.exp(- (Date.now() - creationTime)/(1000*3600));
 	}
@@ -93,6 +97,7 @@ var Ua = {
 		for(var i = 0; i < fields.length; i++) {
 			if(!req.body[fields[i]]) return res.error({message: fields[i], error: 'Missing'});
 		}
+		/* we need to store the features sent in a geojson object with GeometryCollection to be queryable */
 		var geometries = [];
 		for(var i = 0; i < req.body.geojson.features.length; i++){
 			geometries.push({type: req.body.geojson.features[i].geometry.type, coordinates: req.body.geojson.features[i].geometry.coordinates });
@@ -101,6 +106,7 @@ var Ua = {
 			type: 'GeometryCollection',
 			geometries: geometries
 		};
+		// add UA and update user to add ua in his possession
 		UaModel.create({title: req.body.title, description: req.body.description, deleted: false, owner: req.user._id, private: true, location: geojson}).then(function(ua){
 			UserModel.findOneAndUpdate({_id: req.user._id}, {$push: {uas: ua}}, {safe: true, new: true}).then(function(user){
 				return res.ok(ua);
@@ -118,6 +124,7 @@ var Ua = {
 
 				var pos = user.favoris.indexOf(ua._id);
 				var tmpFavoris = user.favoris;
+				// already favor ? Exists => Delete | Not exists => Add
 				if(pos == -1) tmpFavoris.push(ua);
 				else tmpFavoris.splice(pos,1);
 
@@ -142,6 +149,7 @@ var Ua = {
 		});
 	},
 	search: function(req, res, next){
+		//Two queries one for not logged user and one for logged user based on title it's equivalent to LIKE %word% in SQL
 		if(req.user){
 			var query = {$and: [{$or: [{title: { '$regex' : req.body.search, '$options' : 'i' }}, {description: { '$regex' : req.body.search, '$options' : 'i' }}]}, {$or: [{private: false}, {owner: req.user._id}]}], deleted: false};
 		} else {
@@ -168,14 +176,10 @@ var Ua = {
 			if(mapBorder[i][1] > 90) mapBorder[i][1] = 90;
 			if(mapBorder[i][1] > -90) mapBorder[i][1] = -90;
 		}
-
+		/*Intersection with big polygon which has the size of user's map visualization and our data, we fetch the ua in the view */
 		UaModel.find({
 			'location': {
 				$geoIntersects: {
-					/*$box: [
-						[mapBorder[0][0], mapBorder[0][1]],
-						[mapBorder[1][0], mapBorder[1][1]]
-					],*/
 					$geometry: {
 						type: 'Polygon',
 						coordinates: [
@@ -199,6 +203,7 @@ var Ua = {
 			select: '_id avatar deleted username facebook_id'
 		}).then(function(uas){
 			var parsedUas = [];
+			// Cleanup the ua
 			for(var i = 0; i < uas.length; i++){
 				if(!uas[i].deleted){
 					if(req.user && uas[i].owner._id == req.user._id) {
@@ -209,6 +214,7 @@ var Ua = {
 					}
 				}
 			}
+			//convert to geoJSON
 			var uaGeoJSON = GeoJSON.parse(parsedUas, {path: 'location'});
 			return res.ok(uaGeoJSON);
 		}).catch(function(err){
@@ -227,10 +233,6 @@ var Ua = {
 		UaModel.find({
 			'location': {
 				$geoIntersects: {
-					/*$box: [
-						[mapBorder[0][0], mapBorder[0][1]],
-						[mapBorder[1][0], mapBorder[1][1]]
-					],*/
 					$geometry: {
 						type: 'Polygon',
 						coordinates: [
@@ -266,6 +268,7 @@ var Ua = {
 					}
 				}
 			}
+			//compute the score
 			Tools.computeScore(parsedUas).then(function(scoredUa){
 				var uaGeoJSON = GeoJSON.parse(scoredUa, {path: 'location'});
 				return res.ok(uaGeoJSON);
@@ -324,6 +327,7 @@ var Ua = {
 			for(var i = 0; i < user.favoris.length; i++){
 				promises.push(UserModel.findOne({_id: user.favoris[i].owner}).select('_id avatar deleted username facebook_id'));
 			}
+			// Populate owner
 			Promise.all(promises).then(function(users){
 				var parsedUa = []
 				for(var i = 0; i < users.length; i++){

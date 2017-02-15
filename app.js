@@ -3,12 +3,14 @@ var express = require('express'),
 	glob = require('glob'),
 	mongoose = require('mongoose');
 
+// Connection to db
 mongoose.connect(config.db);
 var db = mongoose.connection;
 db.on('error', function () {
 	throw new Error('unable to connect to database at ' + config.db);
 });
 
+// Load models
 var models = glob.sync(config.root + '/app/models/*.js');
 models.forEach(function (model) {
 	require(model);
