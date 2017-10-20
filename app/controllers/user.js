@@ -227,7 +227,7 @@ var User = {
 				}
 			}
 			if(req.body.username && req.body.password && req.body.oldPassword){
-				if(bcrypt.compareSync(req.body.password, user.password)) {
+				if(bcrypt.compareSync(req.body.oldPassword, user.password)) {
 					bcrypt.hash(req.body.password, salt, function (err, hash) {
 						if(err) return res.error({message: err.message, error: err});
 						UserModel.update({_id: user._id}, {username: req.body.username, password: hash}).then(function(user){
