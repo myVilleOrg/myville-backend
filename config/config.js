@@ -11,7 +11,7 @@ var config = {
 		port: process.env.PORT || 3000,
 		db: 'mongodb://localhost/backend-development',
 		tokenSalt: 'zbeb',
-		nosecurePath: ['/user/reset', '/user/create', '/user/login', '/', '/user/login/facebook', '/user/login/google', '/ua/get/geo', '/ua/get/popular', '/user/forgetPassword', '/ua/search'],
+		nosecurePath: ['/user/reset', '/user/create', '/user/login', '/', '/user/login/facebook', '/user/login/google', '/ua/get/geo', '/ua/get/popular', '/user/forgetPassword', '/ua/search', 'ua/get/research'],
 		facebook: {
 			appId: '',
 			appSecret: ''

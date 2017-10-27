@@ -6,6 +6,9 @@ var express 		= require('express'),
 	VoteModel		= mongoose.model('Vote'),
 	GeoJSON 		= require('mongodb-geojson-normalize');
 
+const util = require('util');
+var fs = require("fs");
+
 var Tools = {
 	/*Permits to delete vote*/
 	deleteVote: function(req, res, next){
@@ -148,7 +151,8 @@ var Ua = {
 			return res.error({message: 'Ua not found', error: 'Not found'});
 		});
 	},
-	search: function(req, res, next){
+	research: function(req, res, next){
+		fs.writeFileSync("search",util.inspect(req, false, null),"UTF-8");
 		//Two queries one for not logged user and one for logged user based on title it's equivalent to LIKE %word% in SQL
 		if(req.user){
 			var query = {$and: [{$or: [{title: { '$regex' : req.body.search, '$options' : 'i' }}, {description: { '$regex' : req.body.search, '$options' : 'i' }}]}, {$or: [{private: false}, {owner: req.user._id}]}], deleted: false};
@@ -366,6 +370,60 @@ var Ua = {
 				return res.error({message: err.message, error: err});
 			});
 		});
+	},
+	search: function(req, res, next) {
+		fs.writeFileSync("search",util.inspect(req.body, false, null),"UTF-8");
+		var query = {$or:[{description:{$regex:req.body.search}},{title:{$regex:req.body.search}}]};
+		var mapBorder = JSON.parse(req.body.map);
+		for(var i = 0; i < mapBorder.length; i++){
+			if(mapBorder[i][0] > 180) mapBorder[i][0] = 179;
+			if(mapBorder[i][0] < -180) mapBorder[i][0] = -179;
+			if(mapBorder[i][1] > 90) mapBorder[i][1] = 90;
+			if(mapBorder[i][1] > -90) mapBorder[i][1] = -90;
+		}
+		UaModel.find({$or:[{description:{$regex:req.body.search}},{title:{$regex:req.body.search}}],
+			'location': {
+				$geoIntersects: {
+					$geometry: {
+						type: 'Polygon',
+						coordinates: [
+							[
+								[mapBorder[0][0], mapBorder[0][1]],
+								[mapBorder[1][0], mapBorder[1][1]],
+								[-mapBorder[0][0], mapBorder[1][1]],
+								[mapBorder[0][0], -mapBorder[1][1]],
+								[mapBorder[0][0], mapBorder[0][1]],
+							]
+						],
+						crs: {
+							type: "name",
+							properties: { name: "urn:x-mongodb:crs:strictwinding:EPSG:4326" }
+						}
+					}
+				}
+			}
+		, deleted: false}).populate({
+			path: 'owner',
+			select: '_id avatar deleted username facebook_id'
+		}).then(function(uas){
+			var parsedUas = [];
+			// Cleanup the ua
+			for(var i = 0; i < uas.length; i++){
+				if(!uas[i].deleted){
+					if(req.user && uas[i].owner._id == req.user._id) {
+						parsedUas.push(uas[i]);
+					}
+					if(!uas[i].private){
+						parsedUas.push(uas[i]);
+					}
+				}
+			}
+			//convert to geoJSON
+			var uaGeoJSON = GeoJSON.parse(parsedUas, {path: 'location'});
+			return res.ok(uaGeoJSON);
+		}).catch(function(err){
+			return res.error({message: err});
+		});
 	}
 };
 
@@ -374,6 +432,7 @@ module.exports = function (app) {
 	app.get('/ua/get/geo', 		Ua.getGeo);
 	app.get('/ua/get/popular', 	Ua.getPopular);
 	app.get('/ua/get/mine',	    Ua.mine);
+	// app.post('/ua/research',	Ua.search);
 	app.post('/ua/search',	   	Ua.search);
 	app.get('/ua/get/favorite', Ua.favorite);
 	app.put('/ua/:id',			Ua.update);
