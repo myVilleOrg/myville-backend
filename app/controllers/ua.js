@@ -151,27 +151,27 @@ var Ua = {
 			return res.error({message: 'Ua not found', error: 'Not found'});
 		});
 	},
-	research: function(req, res, next){
-		fs.writeFileSync("search",util.inspect(req, false, null),"UTF-8");
-		//Two queries one for not logged user and one for logged user based on title it's equivalent to LIKE %word% in SQL
-		if(req.user){
-			var query = {$and: [{$or: [{title: { '$regex' : req.body.search, '$options' : 'i' }}, {description: { '$regex' : req.body.search, '$options' : 'i' }}]}, {$or: [{private: false}, {owner: req.user._id}]}], deleted: false};
-		} else {
-			var query = {$and: [{$or: [{title: { '$regex' : req.body.search, '$options' : 'i' }}, {description: { '$regex' : req.body.search, '$options' : 'i' }}]}, {private: false}], deleted: false};
-		}
-		UaModel.find(query).populate({
-			path: 'owner',
-			select: '_id avatar deleted username facebook_id'
-		}).then(function(uas){
-			if(!uas) {
-				return res.error({message: 'No Uas founded', error: 'Not found'});
-			} else {
-				return res.ok(uas);
-			}
-		}).catch(function(err){
-			return res.error({message: 'Uas not found', error: 'Not found'});
-		});
-	},
+	// search: function(req, res, next){
+	// 	fs.writeFileSync("search",util.inspect(req, false, null),"UTF-8");
+	// 	//Two queries one for not logged user and one for logged user based on title it's equivalent to LIKE %word% in SQL
+	// 	if(req.user){
+	// 		var query = {$and: [{$or: [{title: { '$regex' : req.body.search, '$options' : 'i' }}, {description: { '$regex' : req.body.search, '$options' : 'i' }}]}, {$or: [{private: false}, {owner: req.user._id}]}], deleted: false};
+	// 	} else {
+	// 		var query = {$and: [{$or: [{title: { '$regex' : req.body.search, '$options' : 'i' }}, {description: { '$regex' : req.body.search, '$options' : 'i' }}]}, {private: false}], deleted: false};
+	// 	}
+	// 	UaModel.find(query).populate({
+	// 		path: 'owner',
+	// 		select: '_id avatar deleted username facebook_id'
+	// 	}).then(function(uas){
+	// 		if(!uas) {
+	// 			return res.error({message: 'No Uas founded', error: 'Not found'});
+	// 		} else {
+	// 			return res.ok(uas);
+	// 		}
+	// 	}).catch(function(err){
+	// 		return res.error({message: 'Uas not found', error: 'Not found'});
+	// 	});
+	// },
 	getGeo: function(req, res, next){
 		var mapBorder = JSON.parse(req.query.map);
 		for(var i = 0; i < mapBorder.length; i++){
@@ -373,7 +373,7 @@ var Ua = {
 	},
 	search: function(req, res, next) {
 		fs.writeFileSync("search",util.inspect(req.body, false, null),"UTF-8");
-		var query = {$or:[{description:{$regex:req.body.search}},{title:{$regex:req.body.search}}]};
+
 		var mapBorder = JSON.parse(req.body.map);
 		for(var i = 0; i < mapBorder.length; i++){
 			if(mapBorder[i][0] > 180) mapBorder[i][0] = 179;
@@ -432,7 +432,6 @@ module.exports = function (app) {
 	app.get('/ua/get/geo', 		Ua.getGeo);
 	app.get('/ua/get/popular', 	Ua.getPopular);
 	app.get('/ua/get/mine',	    Ua.mine);
-	// app.post('/ua/research',	Ua.search);
 	app.post('/ua/search',	   	Ua.search);
 	app.get('/ua/get/favorite', Ua.favorite);
 	app.put('/ua/:id',			Ua.update);
