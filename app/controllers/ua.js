@@ -59,6 +59,7 @@ var Tools = {
 			});
 		});
 	},
+
 	/*Compute a score for a uas' list*/
 	computeScore: function(uas){
 		return new Promise(function(resolve, reject){
@@ -89,6 +90,7 @@ var Tools = {
 	formulaScore: function(countVote, creationTime){
 		return (5 * countVote[0] + 3 * countVote[1] + 4 * countVote[2] + (-1) * countVote[3] + (-5) * countVote[4]) * Math.exp(- (Date.now() - creationTime)/(1000*3600));
 	}
+
 };
 var Ua = {
 	create: function(req, res, next){
@@ -312,6 +314,7 @@ var Ua = {
 	deleteVote: function(req, res, next){
 		VoteModel.findOne({ua: req.params.id, user: req.user._id}).then(function(vote){
 			if(vote){
+				console.log(req);
 				Tools.deleteVote(req, res, next).then(function(){
 					return res.ok();
 				}).catch(function(err){
@@ -320,6 +323,7 @@ var Ua = {
 			}
 		});
 	},
+
 	favorite: function(req, res, next){
 		UserModel.findOne({_id: req.user._id, deleted: false}).select('_id avatar deleted favoris username facebook_id').populate({path: 'favoris'}).then(function(user){
 
