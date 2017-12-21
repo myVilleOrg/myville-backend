@@ -11,6 +11,7 @@ var UserSchema = new Schema({
 	deleted: {type: Boolean, required: true},
 	uas: [{type: Schema.Types.ObjectId, ref: 'Ua'}],
 	favoris: [{type: Schema.Types.ObjectId, ref: 'Ua'}],
+	groupes: [{type: Schema.Types.ObjectId, ref: 'Group'}],  //the groups that it participate
 	facebook_id: {type: String, required: false},
 	google_id: {type: String, required: false},
 	resetPasswordToken: String,
