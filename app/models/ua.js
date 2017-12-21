@@ -6,6 +6,8 @@ var UaSchema = new Schema({
 	deleted: {type: Boolean, required: true},
 	private: {type: Boolean, required: true},
 	owner: {type: Schema.Types.ObjectId, ref: 'User'},
+	admins:[{type: Schema.Types.ObjectId, ref: 'Group'}],
+	access:[{type: Schema.Types.ObjectId, ref: 'Group'}],
 	location: {
 		type: {
 			type: String,
