@@ -120,6 +120,7 @@ var Group = {
 	//return the list of groups
 	getGroups: function(req, res, next){
 		UserModel.findOne({_id: req.user._id},{groupes:1}).populate({path:'groupes'}).then(function(groupes){
+			console.log(groupes);
 			var transfer=groupes.toJSON();
 			return res.ok(transfer);
 		}).catch(function(err){
@@ -145,6 +146,14 @@ var Group = {
 		}).catch(function(err){
 			return res.error({message: err.message, error: err});
 		});
+	},
+	searchGroup: function(req, res, next){
+		GroupModel.find({$or:[{name:{$regex:req.body.search}}, {description:{$regex:req.body.search}}]}).populate({path:'groupes'}).then(function(groupes){
+							console.log(groupes);
+							return res.ok(groupes);
+						}).catch(function(err){
+							return  res.error({message: err.message, error: err});
+						});
 	}
 	// function(req, res, next){
 	 	// UaModel.find({owner: req.user._id, deleted: false}).populate({path: 'owner'}).then(function(uas){
@@ -432,6 +441,7 @@ module.exports = function (app) {
 	app.post('/group/create', 		Group.create);
 	app.get('/group/get',		Group.getGroups);
   app.delete('/group/:id',		Group.quit);
+	app.post('/group/search', Group.searchGroup);
 	/*app.get('/ua/get/geo', 		Ua.getGeo);
 	app.get('/ua/get/popular', 	Ua.getPopular);
 	app.get('/ua/get/mine',	    Ua.mine);
