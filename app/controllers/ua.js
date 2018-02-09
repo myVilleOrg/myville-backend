@@ -63,6 +63,7 @@ var Tools = {
 			});
 		});
 	},
+
 	/*Compute a score for a uas' list*/
 	computeScore: function(uas){
 		return new Promise(function(resolve, reject){
@@ -93,6 +94,7 @@ var Tools = {
 	formulaScore: function(countVote, creationTime){
 		return (5 * countVote[0] + 3 * countVote[1] + 4 * countVote[2] + (-1) * countVote[3] + (-5) * countVote[4]) * Math.exp(- (Date.now() - creationTime)/(1000*3600));
 	}
+
 };
 var Ua = {
 	create: function(req, res, next){
@@ -297,6 +299,7 @@ var Ua = {
 	deleteVote: function(req, res, next){
 		VoteModel.findOne({ua: req.params.id, user: req.user._id}).then(function(vote){
 			if(vote){
+				console.log(req);
 				Tools.deleteVote(req, res, next).then(function(){
 					return res.ok();
 				}).catch(function(err){
@@ -305,6 +308,7 @@ var Ua = {
 			}
 		});
 	},
+
 	favorite: function(req, res, next){
 		UserModel.findOne({_id: req.user._id, deleted: false}).select('_id avatar deleted favoris username facebook_id').populate({path: 'favoris'}).then(function(user){
 
@@ -362,81 +366,162 @@ var Ua = {
 			if(mapBorder[i][1] > -90) mapBorder[i][1] = -90;
 		}
 
-
-		UaModel.aggregate([{
-		 		$lookup:
-		       {
-		   			from: "users",
-		  			localField: "owner",
-		   			foreignField: "_id",
-		   			as: "join"
-		       }
-		  	},
-		    {
-		      $match :{
-		      	$or:[
-		      	{description:{$regex:req.body.search}},
-		      	{title:{$regex:req.body.search}},
-		      	{"join.username":{$regex:req.body.search}}
-		      	],
-						'location': {
-							$geoIntersects: {
-								$geometry: {
-									type: 'Polygon',
-									coordinates: [
-										[
-											[mapBorder[0][0], mapBorder[0][1]],
-											[mapBorder[1][0], mapBorder[1][1]],
-											[-mapBorder[0][0], mapBorder[1][1]],
-											[mapBorder[0][0], -mapBorder[1][1]],
-											[mapBorder[0][0], mapBorder[0][1]],
-										]
-									],
-									crs: {
-										type: "name",
-										properties: { name: "urn:x-mongodb:crs:strictwinding:EPSG:4326" }
+		if(req.body.searchOption === "Nom Projet"){
+			console.log("Nom Projet");
+			UaModel.aggregate([{
+			 		$lookup:
+			       {
+			   			from: "users",
+			  			localField: "owner",
+			   			foreignField: "_id",
+			   			as: "join"
+			       }
+			  	},
+			    {
+			      $match :{
+			      	$or:[
+			      	{description:{$regex:req.body.search}},
+			      	{title:{$regex:req.body.search}}
+			      	],
+							'location': {
+								$geoIntersects: {
+									$geometry: {
+										type: 'Polygon',
+										coordinates: [
+											[
+												[mapBorder[0][0], mapBorder[0][1]],
+												[mapBorder[1][0], mapBorder[1][1]],
+												[-mapBorder[0][0], mapBorder[1][1]],
+												[mapBorder[0][0], -mapBorder[1][1]],
+												[mapBorder[0][0], mapBorder[0][1]],
+											]
+										],
+										crs: {
+											type: "name",
+											properties: { name: "urn:x-mongodb:crs:strictwinding:EPSG:4326" }
+										}
 									}
 								}
-							}
-						},
-						deleted : false
-		      }
-		    },
-		  	{
-					$project : {
-							"_id" : 1,
-							"title" : 1,
-							"description" : 1,
-							"deleted" : 1,
-							"owner" : 1,
-							"private" : 1,
-							"vote" : 1,
-							"location" : 1,
-							"__v" : 1,
-							"owner" : {_id :"$join._id", avatar :"$join.avatar", deleted : "$join.deleted", username : "$join.username", facebook_id : "$join.facebook_id"}
+							},
+							deleted : false
+			      }
+			    },
+			  	{
+						$project : {
+								"_id" : 1,
+								"title" : 1,
+								"description" : 1,
+								"deleted" : 1,
+								"owner" : 1,
+								"private" : 1,
+								"vote" : 1,
+								"location" : 1,
+								"__v" : 1,
+								"owner" : {_id :"$join._id", avatar :"$join.avatar", deleted : "$join.deleted", username : "$join.username", facebook_id : "$join.facebook_id"}
+						}
+			    }
+			]).then(function(uas){
+				var parsedUas = [];
+				var i =0;
+				// Cleanup the ua
+				while(typeof uas[i] !== 'undefined'){
+					if(!uas[i].deleted){
+						if(req.user && uas[i].owner._id[0] == req.user._id) {
+							parsedUas.push(uas[i]);
+						}
+						if(!uas[i].private){
+							parsedUas.push(uas[i]);
+						}
 					}
-		    }
-		]).then(function(uas){
-			var parsedUas = [];
-			var i =0;
-			// Cleanup the ua
-			while(typeof uas[i] !== 'undefined'){
-				if(!uas[i].deleted){
-					if(req.user && uas[i].owner._id[0] == req.user._id) {
-						parsedUas.push(uas[i]);
-					}
-					if(!uas[i].private){
-						parsedUas.push(uas[i]);
-					}
+					i++;
 				}
-				i++;
-			}
-			//convert to geoJSON
-			var uaGeoJSON = GeoJSON.parse(parsedUas, {path: 'location'});
-			return res.ok(uaGeoJSON);
-		}).catch(function(err){
-			return res.error({message: err});
-		});
+				//convert to geoJSON
+				var uaGeoJSON = GeoJSON.parse(parsedUas, {path: 'location'});
+				return res.ok(uaGeoJSON);
+			}).catch(function(err){
+				return res.error({message: err});
+			});
+		} else {
+			console.log("createur");
+			UaModel.aggregate([{
+			 		$lookup:
+			       {
+			   			from: "users",
+			  			localField: "owner",
+			   			foreignField: "_id",
+			   			as: "join",
+						//  from: "groups",
+						//  localField: "owner",
+						//  foreignField: "_id",
+						//  as: "joinG"
+						}
+			  	},
+			    {
+			      $match :{
+			      	$or:[
+			      	{"join.username":{$regex:req.body.search}},
+							// {"joinG.name":{$regex:req.body.search}}
+			      	],
+							'location': {
+								$geoIntersects: {
+									$geometry: {
+										type: 'Polygon',
+										coordinates: [
+											[
+												[mapBorder[0][0], mapBorder[0][1]],
+												[mapBorder[1][0], mapBorder[1][1]],
+												[-mapBorder[0][0], mapBorder[1][1]],
+												[mapBorder[0][0], -mapBorder[1][1]],
+												[mapBorder[0][0], mapBorder[0][1]],
+											]
+										],
+										crs: {
+											type: "name",
+											properties: { name: "urn:x-mongodb:crs:strictwinding:EPSG:4326" }
+										}
+									}
+								}
+							},
+							deleted : false
+			      }
+			    },
+			  	{
+						$project : {
+								"_id" : 1,
+								"title" : 1,
+								"description" : 1,
+								"deleted" : 1,
+								"owner" : 1,
+								"private" : 1,
+								"vote" : 1,
+								"location" : 1,
+								"__v" : 1,
+								"owner" : {_id :"$join._id", avatar :"$join.avatar", deleted : "$join.deleted", username : "$join.username", facebook_id : "$join.facebook_id"}
+						}
+			    }
+			]).then(function(uas){
+				var parsedUas = [];
+				var i =0;
+				// Cleanup the ua
+				while(typeof uas[i] !== 'undefined'){
+					if(!uas[i].deleted){
+						if(req.user && uas[i].owner._id[0] == req.user._id) {
+							parsedUas.push(uas[i]);
+						}
+						if(!uas[i].private){
+							parsedUas.push(uas[i]);
+						}
+					}
+					i++;
+				}
+				//convert to geoJSON
+				var uaGeoJSON = GeoJSON.parse(parsedUas, {path: 'location'});
+				return res.ok(uaGeoJSON);
+			}).catch(function(err){
+				return res.error({message: err});
+			});
+		}
+
 	}
 };
 
@@ -446,7 +531,6 @@ module.exports = function (app) {
 	app.get('/ua/get/popular', 	Ua.getPopular);
 	app.get('/ua/get/mine',	    Ua.mine);
 	app.post('/ua/search',	   	Ua.search);
-	// app.post('/ua/tabSearch',	   	Ua.tabSearch);
 	app.get('/ua/get/favorite', Ua.favorite);
 	app.put('/ua/:id',			Ua.update);
 	app.get('/ua/:id',	    	Ua.get);
