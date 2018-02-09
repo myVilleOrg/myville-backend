@@ -367,7 +367,7 @@ var Ua = {
 		}
 
 		if(req.body.searchOption === "Nom Projet"){
-			console.log("Nom Projet");
+			//console.log("Nom Projet");
 			UaModel.aggregate([{
 			 		$lookup:
 			       {
@@ -442,7 +442,7 @@ var Ua = {
 				return res.error({message: err});
 			});
 		} else {
-			console.log("createur");
+			//console.log("createur");
 			UaModel.aggregate([{
 			 		$lookup:
 			       {
