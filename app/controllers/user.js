@@ -237,7 +237,7 @@ var User = {
 						});
 					});
 				} else {
-					return res.error({message: 'Bad old password'});
+					return res.error({message: 'Ancien mot de passe non valide.'});
 				}
 			}
 		}).catch(function(err){
