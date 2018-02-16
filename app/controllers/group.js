@@ -107,7 +107,7 @@ var Group = {
     userDefault=[req.user._id];
     uasDefault=new Array();
 		// add group and update user to add group in his possession
-		GroupModel.create({name: req.body.name, description: req.body.description, admins: adminDefault, users: userDefault, uas: uasDefault, private: true}).then(function(group){
+		GroupModel.create({name: req.body.name, description: req.body.description, admins: adminDefault, uas: uasDefault, private: true}).then(function(group){
 			UserModel.findOneAndUpdate({_id: req.user._id}, {$push: {groupes: group}}, {safe: true, new: true}).then(function(user){
 				return res.ok(group);
 			}).catch(function(err){
@@ -120,7 +120,6 @@ var Group = {
 	//return the list of groups
 	getGroups: function(req, res, next){
 		UserModel.findOne({_id: req.user._id},{groupes:1}).populate({path:'groupes'}).then(function(groupes){
-			console.log(groupes);
 			var transfer=groupes.toJSON();
 			return res.ok(transfer);
 		}).catch(function(err){
@@ -130,19 +129,69 @@ var Group = {
 	//quit from a group
 	quit: function(req, res, next){
 		GroupModel.findOne({_id: req.params.id}).then(function(group){
-			GroupModel.update({_id:group.id},{$pull:{users:req.user._id}}).then(function(data){
-				rep=GroupModel.findOne({_id:group.id,admins: req.user._id});
-				if(rep!=null){
-					GroupModel.update({_id:group.id,admins: req.user._id},{$pull:{admins:req.user._id}});
-				}
+			if (group.admins.indexOf(req.user._id)!=-1){
+				GroupModel.update({_id:group.id},{$pull:{admins:req.user._id}}).then(function(data){}).catch(function(err){
+					return  res.error({message: err.message, error: err});
+				});
+			}
+			else if(group.ecrivains.indexOf(req.user._id)!=-1){
+				//message2 = group.ecrivains.indexOf(req.user._id);
+				GroupModel.update({_id:group.id},{$pull:{ecrivains:req.user._id}}).then(function(data){}).catch(function(err){
+					return  res.error({message: err.message, error: err});
+				});
+			}
+			else if(group.lecteurs.indexOf(req.user._id)!=-1){
+				//message3 = group.lecteurs.indexOf(req.user._id);
+				GroupModel.update({_id:group.id},{$pull:{lecteurs:req.user._id}}).then(function(data){}).catch(function(err){
+					return  res.error({message: err.message, error: err});
+				});
+			}
+			else{
+				return res.error({message: "L'utilisateur n'est pas dans le groupe", error:"error"});
+			}
+			GroupModel.findOne({_id: req.params.id}).populate({path:'uas'}).then(function(group){
 				UserModel.update({_id: req.user._id},{$pull:{groupes:group.id}}).then(function(data){
-					res.ok({message:"réussi"})
+					if(group.admins.length==0&&group.ecrivains.length==0&&group.lecteurs.length==0){
+						GroupModel.remove({_id:req.params.id}).then(function(data){
+							var trace=new Array();
+							for(var i=0;i<group.uas.length;i++){
+								if(group.uas[i].admins.indexOf(group.id)!=-1){
+									UaModel.update({_id:group.uas[i]._id},{$pull:{admins:group.id}}).then(function(data){
+										trace.append("dans admin:"+group.uas[i]._id);
+									});
+								}
+								else if(group.uas[i].access.indexOf(group.id)!=-1){
+									UaModel.update({_id:group.uas[i]._id},{$pull:{access:group.id}}).then(function(data){
+										trace.append("dans access:"+group.uas[i]._id);
+									});
+								}
+							}
+							res.ok({message:"supprimez avec réussi et le groupe n'existe plus",traces:trace});
+						}).catch(function(err){
+						 	return res.error({message: err.message, error: err});
+						});
+					}
+					else res.ok({message:"supprimez avec réussi"});
 				}).catch(function(err){
-					return res.error({message: err.message, error: err});
+				 	return res.error({message: err.message, error: err});
 				});
 			}).catch(function(err){
-				return res.error({message: err.message, error: err});
+			 	return res.error({message: err.message, error: err});
 			});
+			// GroupModel.update({_id:group.id},{$pull:{users:req.user._id}}).then(function(data){
+			// 	rep=GroupModel.findOne({_id:group.id,admins: req.user._id});
+			// 	if(rep!=null){
+			// 		GroupModel.update({_id:group.id,admins: req.user._id},{$pull:{admins:req.user._id}});
+			// 	}
+			// 	UserModel.update({_id: req.user._id},{$pull:{groupes:group.id}}).then(function(data){
+			// 		//il faut rajouter un quit d'admin
+			// 		res.ok({message:"réussi"});
+			// 	}).catch(function(err){
+			// 		return res.error({message: err.message, error: err});
+			// 	});
+			// }).catch(function(err){
+			// 	return res.error({message: err.message, error: err});
+			// });
 		}).catch(function(err){
 			return res.error({message: err.message, error: err});
 		});
@@ -154,6 +203,51 @@ var Group = {
 						}).catch(function(err){
 							return  res.error({message: err.message, error: err});
 						});
+	},
+	//recherche les projets dans un projet
+	groupInfo: function(req, res, next){
+		GroupModel.findOne({name:req.body.name}).populate({path:'admins ecrivains lecteurs uas'}).then(function(group){
+			res.ok(group);
+		}).catch(function(err){
+			return  res.error({message: err.message, error: err});
+		});
+	},
+	//ajouter un projet dans un groupe
+	addProject: function(req, res, next){
+		GroupModel.findOne({_id:req.params.id}).then(function(group){
+			if(group.uas.indexOf(req.body._id)==-1){
+				GroupModel.update({_id:group.id},{$push:{uas:req.body}}).then(function(data){
+					UaModel.update({_id:req.body._id},{$push:{access:group}}).then(function(data){
+						res.ok({message:"Vous avez ajouter le projet dans votre groupe"});
+					}).catch(function(err){
+						return res.error({message: err.message, error: err});
+					});
+				}).catch(function(err){
+					return res.error({message: err.message, error: err});
+				});
+			}
+			else{
+				res.ok({message:"Ce projet est déja existé dans votre groupe"});
+			}
+		}).catch(function(err){
+			return res.error({message: err.message, error: err});
+		});
+	},
+	//un utilisateur participe dans un groupe
+	getInGroup: function(req, res, next){
+		GroupModel.findOne({_id:req.params.id}).then(function(group){
+			GroupModel.update({_id:req.params.id},{$push:{lecteurs:req.user._id}}).then(function(data){
+				UserModel.update({_id:req.user._id},{$push:{groupes:req.params.id}}).then(function(data){
+					res.ok({message:"Vous avez rejoint le groupe"});
+				}).catch(function(err){
+					return res.error({message: err.message, error: err});
+				});
+			}).catch(function(err){
+				return res.error({message: err.message, error: err});
+			});
+		}).catch(function(err){
+			return res.error({message: err.message, error: err});
+		});
 	}
 	// function(req, res, next){
 	 	// UaModel.find({owner: req.user._id, deleted: false}).populate({path: 'owner'}).then(function(uas){
@@ -442,6 +536,9 @@ module.exports = function (app) {
 	app.get('/group/get',		Group.getGroups);
   app.delete('/group/:id',		Group.quit);
 	app.post('/group/search', Group.searchGroup);
+	app.post('/group/addProjet:id', Group.addProject);
+	app.post('/group/info', Group.groupInfo);
+	app.post('/group/getIn:id', Group.getInGroup);
 	/*app.get('/ua/get/geo', 		Ua.getGeo);
 	app.get('/ua/get/popular', 	Ua.getPopular);
 	app.get('/ua/get/mine',	    Ua.mine);
