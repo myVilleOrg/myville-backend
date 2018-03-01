@@ -12,6 +12,7 @@ var UserSchema = new Schema({
 	uas: [{type: Schema.Types.ObjectId, ref: 'Ua'}],
 	favoris: [{type: Schema.Types.ObjectId, ref: 'Ua'}],
 	groupes: [{type: Schema.Types.ObjectId, ref: 'Group'}],  //the groups that it participate
+	messages: [{type: Schema.Types.ObjectId, ref: 'Message'}],
 	facebook_id: {type: String, required: false},
 	google_id: {type: String, required: false},
 	resetPasswordToken: String,
