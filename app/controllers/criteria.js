@@ -5,7 +5,7 @@ var  express 		= require('express'),
 var Criteria = {
 
 	create_criteria: function(critere){
-		CriteriaModel.create("critere").catch(function(err){
+		CriteriaModel.create({critere}).catch(function(err){
 			reject(err);
 			});
 		},
@@ -25,28 +25,48 @@ var Criteria = {
 			});
 		},
 
+
 		get_criteria: function(req,res,next){  //fonction utilisée par le front pour récupérer les critere et les id
+			CriteriaModel.find({},function(err,criteres){
+				var CritereMap = {};
 
-		}
-};
-
-/*
-		var Group = {
-
-			//return the list of groups
-			getGroups: function(req, res, next){
-				UserModel.findOne({_id: req.user._id},{groupes:1}).populate({path:'groupes'}).then(function(groupes){
-					console.log(groupes);
-					var transfer=groupes.toJSON();
-					return res.ok(transfer);
-				}).catch(function(err){
-					return  res.error({message: err.message, error: err});
+				criteres.forEach(function(critere){
+					CritereMap[critere._id] = critere.name;
 				});
-			},
+				//console.log(CritereMap);
+				res.send(CritereMap);
+
+			});
+
+		},
 
 };
-Criteria.create_criteria;
-*/
+
+
+//creation de critère
+
+// var Criteria1 =  new CriteriaModel	({ name : 'Qualité' });
+//
+// Criteria1.save(function (err) {
+//   if (err) { throw err; }
+//   console.log('Critère ajouté avec succès !');
+// });
+
+
+
+//suppression de critere
+
+// CriteriaModel.remove({ name : 'esthetique' }, function (err) {
+//   if (err) { throw err; }
+//   console.log('esthetique supprimés !');
+// });
+//
+
+//Criteria.get_criteria();
+
+//Criteria.create_criteria;
+
+
 module.exports = function (app) {
 	app.get('/criteria/get',	Criteria.get_criteria);
 };
