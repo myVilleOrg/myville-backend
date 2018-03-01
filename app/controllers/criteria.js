@@ -28,13 +28,8 @@ var Criteria = {
 
 		get_criteria: function(req,res,next){  //fonction utilisée par le front pour récupérer les critere et les id
 			CriteriaModel.find({},function(err,criteres){
-				var CritereMap = {};
 
-				criteres.forEach(function(critere){
-					CritereMap[critere._id] = critere.name;
-				});
-				//console.log(CritereMap);
-				res.send(CritereMap);
+				res.send(criteres);
 
 			});
 
