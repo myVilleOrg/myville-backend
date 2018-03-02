@@ -38,7 +38,7 @@ var Criteria = {
 };
 
 
-//creation de critère
+//creation de critère manuelle à décommenter si besoin
 
 // var Criteria1 =  new CriteriaModel	({ name : 'Qualité' });
 //
@@ -49,7 +49,35 @@ var Criteria = {
 
 
 
-//suppression de critere
+// Initialisation de la table criteria
+
+CriteriaModel.count({}, function( err, count){
+		if(count==0){
+			var Criteria1 =  new CriteriaModel	({ name : 'Qualité' });
+
+			Criteria1.save(function (err) {
+			  if (err) { throw err; }
+			});
+
+
+			var Criteria2 =  new CriteriaModel	({ name : 'Esthétique' });
+
+			Criteria2.save(function (err) {
+				if (err) { throw err; }
+			});
+
+			var Criteria3 =  new CriteriaModel	({ name : 'Utilité' });
+
+			Criteria3.save(function (err) {
+			  if (err) { throw err; }
+			});
+
+
+		}
+})
+
+
+//suppression de critere manuelle à décommenter si besoin
 
 // CriteriaModel.remove({ name : 'esthetique' }, function (err) {
 //   if (err) { throw err; }
@@ -57,9 +85,6 @@ var Criteria = {
 // });
 //
 
-//Criteria.get_criteria();
-
-//Criteria.create_criteria;
 
 
 module.exports = function (app) {

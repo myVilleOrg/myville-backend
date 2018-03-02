@@ -11,15 +11,6 @@ var Vote = {
 			return res.error(err);
 		});
 	}
-	/*Count the numbers of a type of vote
-  countVoteByUa: function(req, res, next){
-		VoteModel.findOne({user: req.user._id, ua: req.params.cUaId}).then(function(vote){
-			if(!vote) return res.error({message: 'Not voted'});
-			return res.ok({message : 'finally ok'});
-		}).catch(function(err){
-			return res.error(err);
-		});
-	}*/
 };
 
 module.exports = function (app) {

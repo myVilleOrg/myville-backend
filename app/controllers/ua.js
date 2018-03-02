@@ -40,9 +40,10 @@ var Tools = {
 			var fvote = {
 				ua: req.params.id,
 				user: req.user._id,
-				vote: req.body.vote
+				//vote: req.body.vote
+				vote:req.body
 			};
-
+			console.log(req.body, "Vote TOOLS req.body");
 			VoteModel.create(fvote).then(function(foundVote){
 				UaModel.findOne({_id: req.params.id}).then(function(ua){
 					if(!ua ||(ua.private && ua.owner != req.user._id))	return res.error({message: "ua not found"});
@@ -274,6 +275,8 @@ var Ua = {
 	vote: function(req, res, next){
 		VoteModel.findOne({ua: req.params.id, user: req.user._id}).then(function(vote){
 			if(vote){
+				//tmp
+				console.log(vote," Test ua/Vote, if");
 				Tools.deleteVote(req, res, next).then(function(){
 					Tools.vote(req, res, next).then(function(ua){
 						if(ua){
@@ -289,6 +292,8 @@ var Ua = {
 				});
 			} else {
 				Tools.vote(req, res, next).then(function(ua){
+					//tmp
+					console.log(ua," Test ua/Vote, else");
 					return res.ok(ua);
 				}).catch(function(err){
 					return res.error(err);
