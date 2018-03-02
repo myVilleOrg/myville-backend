@@ -186,13 +186,13 @@ var Group = {
 						return res.error({message: err.message, error: err});
 					});
 				 }
-				 else if(req.body.message.positionCourante==="ecrivain"){
+				 else if(req.body.message.positionCourante==="écrivain"){
 					GroupModel.update({name:req.body.message.groupNom},{$pull:{ecrivains:userId._id}}).then(function(data){}).catch(function(err){
 						return res.error({message: err.message, error: err});
 					});
 				 }
 				 else{
-					return res.error({message: err.message, error: err});
+					return res.error({message: req.body.message.positionCourante});
 				 }
 
 
