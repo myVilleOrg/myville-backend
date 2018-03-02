@@ -179,29 +179,51 @@ var Group = {
 	},
 
 	donnerDroit: function(req, res, next){
-		var roleCourrent=req.body.message.positionCourante;
-		if(req.body.message.demande='DemandeAdmin'){
-			var roleGroup="admins";
-		}
-		else if(req.body.message.demande='DemandeEcrivain'){
-			var roleGroup="ecrivains";
+		if(req.body.decision==="accepter"){
+			UserModel.findOne({username:req.body.message.de},{_id:1}).then(function(userId){
+				 if(req.body.message.positionCourante==="lecteur"){
+					GroupModel.update({name:req.body.message.groupNom},{$pull:{lecteurs:userId._id}}).then(function(data){}).catch(function(err){
+						return res.error({message: err.message, error: err});
+					});
+				 }
+				 else if(req.body.message.positionCourante==="écrivain"){
+					GroupModel.update({name:req.body.message.groupNom},{$pull:{ecrivains:userId._id}}).then(function(data){}).catch(function(err){
+						return res.error({message: err.message, error: err});
+					});
+				 }
+				 else{
+					return res.error({message: req.body.message.positionCourante});
+				 }
+
+
+				if(req.body.message.demande === 'DemandeAdmin'){
+					GroupModel.update({name:req.body.message.groupNom},{$push:{admins:userId}}).then(function(){
+					}).catch(function(err){
+						return res.error({message: err.message, error: err});
+					});
+				}
+				else if(req.body.message.demande === 'DemandeEcrivain'){
+					GroupModel.update({name:req.body.message.groupNom},{$push:{ecrivains:userId}}).then(function(){
+					}).catch(function(err){
+						return res.error({message: err.message, error: err});
+					});
+				}
+
+				MessageModel.update({_id:req.body.message._id},{$set:{vu:true}}).then(function(){
+					res.ok({message:"success"});
+				}).catch(function(err){
+					return res.error({message: err.message, error: err});
+				});
+			}).catch(function(err){
+				return res.error({message: err.message, error: err});
+			});
 		}
 		else{
-			return res.error({message: err.message, error: err});
-		}
-		if(req.body.decision==="accepter"){
-		UserModel.findOne({username:req.body.message.de},{_id:1}).then(function(userId){
-			GroupModel.update({name:req.body.message.groupNom},{$push:{roleGroup:userId},$pull:{roleCourrent:userId}}).then(function(){
+			MessageModel.update({_id:req.body.message._id},{$set:{vu:true}}).then(function(){
 				res.ok({message:"success"});
 			}).catch(function(err){
 				return res.error({message: err.message, error: err});
 			});
-		}).catch(function(err){
-			return res.error({message: err.message, error: err});
-		});
-		}
-		else{
-			res.ok({message:req.body.decision});
 		}
 	}
 
