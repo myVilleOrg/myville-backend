@@ -38,7 +38,7 @@ var Criteria = {
 };
 
 
-//creation de critère
+//creation de critère manuelle à décommenter si besoin
 
 // var Criteria1 =  new CriteriaModel	({ name : 'Qualité' });
 //
@@ -52,7 +52,6 @@ var Criteria = {
 // Initialisation de la table criteria
 
 CriteriaModel.count({}, function( err, count){
-    console.log( "Number of criteria:", count );
 		if(count==0){
 			var Criteria1 =  new CriteriaModel	({ name : 'Qualité' });
 
@@ -78,7 +77,7 @@ CriteriaModel.count({}, function( err, count){
 })
 
 
-//suppression de critere
+//suppression de critere manuelle à décommenter si besoin
 
 // CriteriaModel.remove({ name : 'esthetique' }, function (err) {
 //   if (err) { throw err; }
@@ -86,9 +85,6 @@ CriteriaModel.count({}, function( err, count){
 // });
 //
 
-//Criteria.get_criteria();
-
-//Criteria.create_criteria;
 
 
 module.exports = function (app) {
