@@ -219,14 +219,4 @@ module.exports = function (app) {
 	app.post('/group/getIn:id', Group.getInGroup);
 	app.post('/group/demandeDroit',Group.demandeDroit);
 	app.post('/group/donnerDroit',Group.donnerDroit);
-	/*app.get('/ua/get/geo', 		Ua.getGeo);
-	app.get('/ua/get/popular', 	Ua.getPopular);
-	app.get('/ua/get/mine',	    Ua.mine);
-
-	app.get('/ua/get/favorite', Ua.favorite);
-	app.put('/ua/:id',			Ua.update);
-	app.get('/ua/:id',	    	Ua.get);
-
-	app.post('/ua/vote/:id',	Ua.vote);
-	app.delete('/ua/vote/:id',	Ua.deleteVote);*/
 };
