@@ -49,6 +49,35 @@ var Criteria = {
 
 
 
+// Initialisation de la table criteria
+
+CriteriaModel.count({}, function( err, count){
+    console.log( "Number of criteria:", count );
+		if(count==0){
+			var Criteria1 =  new CriteriaModel	({ name : 'Qualité' });
+
+			Criteria1.save(function (err) {
+			  if (err) { throw err; }
+			});
+
+
+			var Criteria2 =  new CriteriaModel	({ name : 'Esthétique' });
+
+			Criteria2.save(function (err) {
+				if (err) { throw err; }
+			});
+
+			var Criteria3 =  new CriteriaModel	({ name : 'Utilité' });
+
+			Criteria3.save(function (err) {
+			  if (err) { throw err; }
+			});
+
+
+		}
+})
+
+
 //suppression de critere
 
 // CriteriaModel.remove({ name : 'esthetique' }, function (err) {
